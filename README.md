@@ -1,5 +1,7 @@
 # Antenna Design Portal
 
+**Live:** https://sirgcmhatorey.github.io/wp4tzv-antenna-design/
+
 A static-first Progressive Web App of amateur-radio antenna calculators, engineering
 tools, and interactive diagrams — for hams, RF engineers, students, and makers.
 
@@ -76,6 +78,14 @@ npm run preview    # preview the production build
 Physics correctness is covered by 56 vitest cases, including a golden-reference dataset
 for the Loading Coil (Nagaoka/Lundin identity chain, worked coils, solve-mode round-trips,
 status codes, codec round-trips).
+
+## Deploy
+
+Pushing to `main` builds and publishes to GitHub Pages via
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). The build sets
+`BASE_PATH=/<repo>` so the app works under the Pages sub-path; prerendered links
+are relative, so it also runs from the repo root or any other host. Serve the
+`build/` directory on any static host to self-host.
 
 ## License
 
