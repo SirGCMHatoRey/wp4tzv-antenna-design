@@ -15,6 +15,10 @@ const config = {
     }),
     alias: {
       $components: 'src/lib/components'
+    },
+    // GitHub Pages serves under /<repo>/; set BASE_PATH in the deploy workflow.
+    paths: {
+      base: process.env.BASE_PATH ?? ''
     }
   }
 };

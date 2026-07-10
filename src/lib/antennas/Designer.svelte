@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
   import { browser } from '$app/environment';
+  import { base } from '$app/paths';
   import { computeAntenna } from './engine';
   import type { AntennaDesign } from './types';
   import { units, centerFreqMHz } from '$lib/stores/app-state';
@@ -47,7 +48,7 @@
     return full * 0.6;
   });
   const handoffUrl = $derived(
-    `/tools/loading-coil?f=${Number(fMHz)}&pos=base&H=${handoffH.toFixed(3)}&u=m`
+    `${base}/tools/loading-coil?f=${Number(fMHz)}&pos=base&H=${handoffH.toFixed(3)}&u=m`
   );
 
   // ---- diagram helpers ----

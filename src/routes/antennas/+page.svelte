@@ -1,5 +1,6 @@
 <script lang="ts">
   import { antennasByTier } from '$lib/registry';
+  import { base } from '$app/paths';
   const groups = antennasByTier();
 </script>
 
@@ -20,7 +21,7 @@
   <div class="eyebrow"><span class="no">T{group.tier}</span> {group.label.replace(/^Tier \d+ · /, '')}</div>
   <div class="grid">
     {#each group.models as m}
-      <a class="tile" href={`/antennas/${m.slug}`}>
+      <a class="tile" href={`${base}/antennas/${m.slug}`}>
         <span class="tname">{m.name}</span>
         <span class="tmeta">{m.method}{#if m.loadable} · loadable{/if}</span>
         <span class="src">{m.source}</span>

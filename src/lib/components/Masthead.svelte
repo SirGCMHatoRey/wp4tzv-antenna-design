@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { base } from '$app/paths';
   import { theme } from '$lib/stores/theme';
   import { centerFreqMHz } from '$lib/stores/app-state';
   import { antennasByTier, engineeringTools } from '$lib/registry';
@@ -18,10 +19,13 @@
     else freqText = String($centerFreqMHz);
   }
 
-  const path = $derived($page.url.pathname);
-  const onAntennas = $derived(path === '/antennas' || path.startsWith('/antennas/'));
-  const onTools = $derived(path === '/tools' || path.startsWith('/tools/'));
-  const onReference = $derived(path === '/reference' || path.startsWith('/reference/'));
+  // route.id is base-path-independent (e.g. "/tools/[slug]"), so active-state
+  // detection keeps working under a GitHub Pages sub-path.
+  const routeId = $derived($page.route.id ?? '');
+  const isHome = $derived(routeId === '/');
+  const onAntennas = $derived(routeId.startsWith('/antennas'));
+  const onTools = $derived(routeId.startsWith('/tools'));
+  const onReference = $derived(routeId.startsWith('/reference'));
 
   let openMenu = $state<'antennas' | 'tools' | null>(null);
   function closeMenus() {
@@ -33,12 +37,12 @@
 
 <header class="chrome">
   <div class="row container">
-    <a class="wordmark" href="/" onclick={closeMenus}>
+    <a class="wordmark" href="{base}/" onclick={closeMenus}>
       Antenna Design<span class="dot">.</span>
     </a>
 
     <nav class="main" aria-label="Primary">
-      <a href="/" aria-current={path === '/' ? 'page' : undefined}>Home</a>
+      <a href="{base}/" aria-current={isHome ? 'page' : undefined}>Home</a>
 
       <div class="menu" class:open={openMenu === 'antennas'}>
         <button
@@ -54,10 +58,10 @@
           {#each antennaGroups as group}
             <p class="grp">{group.label}</p>
             {#each group.models as m}
-              <a role="menuitem" href={`/antennas/${m.slug}`} onclick={closeMenus}>{m.name}</a>
+              <a role="menuitem" href={`${base}/antennas/${m.slug}`} onclick={closeMenus}>{m.name}</a>
             {/each}
           {/each}
-          <a role="menuitem" class="all" href="/antennas" onclick={closeMenus}>All Antenna Models →</a>
+          <a role="menuitem" class="all" href="{base}/antennas" onclick={closeMenus}>All Antenna Models →</a>
         </div>
       </div>
 
@@ -73,13 +77,13 @@
         </button>
         <div class="panel" role="menu" aria-label="Engineering Tools">
           {#each tools as t}
-            <a role="menuitem" href={`/tools/${t.slug}`} onclick={closeMenus}>{t.name}</a>
+            <a role="menuitem" href={`${base}/tools/${t.slug}`} onclick={closeMenus}>{t.name}</a>
           {/each}
-          <a role="menuitem" class="all" href="/tools" onclick={closeMenus}>All Engineering Tools →</a>
+          <a role="menuitem" class="all" href="{base}/tools" onclick={closeMenus}>All Engineering Tools →</a>
         </div>
       </div>
 
-      <a href="/reference" aria-current={onReference ? 'page' : undefined}>Reference</a>
+      <a href="{base}/reference" aria-current={onReference ? 'page' : undefined}>Reference</a>
     </nav>
 
     <div class="cf">

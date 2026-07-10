@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { base } from '$app/paths';
 </script>
 
 <svelte:head><title>{$page.status} — Antenna Design Portal</title></svelte:head>
@@ -8,7 +9,7 @@
   <p class="code tnum">{$page.status}</p>
   <h1 class="hero-title">{$page.error?.message ?? 'Something went off-frequency'}</h1>
   <p class="lead">The page you asked for isn't here. Head back to the workbench.</p>
-  <a class="btn" href="/">Return home</a>
+  <a class="btn" href="{base}/">Return home</a>
 </section>
 
 <style>

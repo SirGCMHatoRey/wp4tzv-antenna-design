@@ -1,5 +1,6 @@
 <script lang="ts">
   import { centerFreqMHz } from '$lib/stores/app-state';
+  import { base } from '$app/paths';
   import { antennasByTier, engineeringTools } from '$lib/registry';
 
   // Homepage quick calculator: derive one Center Frequency from the operator's
@@ -69,7 +70,7 @@
 <div class="eyebrow"><span class="no">01</span> Engineering Tools</div>
 <div class="grid">
   {#each tools as t}
-    <a class="tile" href={`/tools/${t.slug}`}>
+    <a class="tile" href={`${base}/tools/${t.slug}`}>
       <span class="tname">{t.name}</span>
       <span class="tmeta tnum">{t.exact ? 'exact' : t.method}</span>
     </a>
@@ -81,7 +82,7 @@
   <p class="grouplabel">{group.label}</p>
   <div class="grid">
     {#each group.models as m}
-      <a class="tile" href={`/antennas/${m.slug}`}>
+      <a class="tile" href={`${base}/antennas/${m.slug}`}>
         <span class="tname">{m.name}</span>
         <span class="tmeta">{m.method}{#if m.loadable} · loadable{/if}</span>
       </a>

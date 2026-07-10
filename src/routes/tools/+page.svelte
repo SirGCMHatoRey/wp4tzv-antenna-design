@@ -1,5 +1,6 @@
 <script lang="ts">
   import { engineeringTools } from '$lib/registry';
+  import { base } from '$app/paths';
   const exact = engineeringTools.filter((t) => t.exact);
   const approx = engineeringTools.filter((t) => !t.exact);
 </script>
@@ -19,7 +20,7 @@
 <div class="eyebrow"><span class="no">01</span> Exact</div>
 <div class="grid">
   {#each exact as t}
-    <a class="tile" href={`/tools/${t.slug}`}>
+    <a class="tile" href={`${base}/tools/${t.slug}`}>
       <span class="tname">{t.name}</span>
       <span class="tmeta tnum">{t.formula}</span>
     </a>
@@ -29,7 +30,7 @@
 <div class="eyebrow"><span class="no">02</span> Approximating · declares method + accuracy note</div>
 <div class="grid">
   {#each approx as t}
-    <a class="tile" href={`/tools/${t.slug}`}>
+    <a class="tile" href={`${base}/tools/${t.slug}`}>
       <span class="tname">{t.name}</span>
       <span class="tmeta">{t.method} · {t.formula}</span>
     </a>
