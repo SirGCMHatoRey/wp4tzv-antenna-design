@@ -1,0 +1,176 @@
+<title>Loading Coil — datasheet type specimen</title>
+<style>
+  :root{
+    --paper:#F1F2EE; --panel:#FAFBF7; --sunk:#EBEDE6;
+    --ink:#161A1D; --ink-2:#5C635D; --ink-3:#868D86;
+    --rule:#D2D7CF; --rule-strong:#B4BAB1;
+    --signal:#B87514; --signal-ink:#7E5107; --signal-soft:#F0E2C6;
+    --display:"Saira SemiCondensed","Saira Semi Condensed","Arial Narrow","Helvetica Neue Condensed",Arial,sans-serif;
+    --body:"IBM Plex Sans",system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0E1114; --panel:#151A1C; --sunk:#0A0D0F;
+      --ink:#E9EBE6; --ink-2:#9AA29B; --ink-3:#6E766E;
+      --rule:#272D29; --rule-strong:#3A413C;
+      --signal:#E0A63C; --signal-ink:#EAB559; --signal-soft:#3A2E13;
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#F1F2EE; --panel:#FAFBF7; --sunk:#EBEDE6; --ink:#161A1D; --ink-2:#5C635D; --ink-3:#868D86;
+    --rule:#D2D7CF; --rule-strong:#B4BAB1; --signal:#B87514; --signal-ink:#7E5107; --signal-soft:#F0E2C6;
+  }
+  :root[data-theme="dark"]{
+    --paper:#0E1114; --panel:#151A1C; --sunk:#0A0D0F; --ink:#E9EBE6; --ink-2:#9AA29B; --ink-3:#6E766E;
+    --rule:#272D29; --rule-strong:#3A413C; --signal:#E0A63C; --signal-ink:#EAB559; --signal-soft:#3A2E13;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px;margin:0 auto;padding:24px 22px 64px}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  .mast{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:12px;flex-wrap:wrap}
+  .mast h1{font-family:var(--display);font-size:38px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0;line-height:.98;text-wrap:balance}
+  .mast .sub{font-size:12.5px;color:var(--ink-2);margin-top:5px}
+  .partno{font-family:var(--mono);font-size:11px;color:var(--ink-2);text-align:right;line-height:1.8}
+  .partno b{color:var(--ink)}
+  .themebtn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--ink-2);border:1px solid var(--rule-strong);padding:5px 9px;cursor:pointer;margin-top:8px}
+  .themebtn:hover{color:var(--ink);border-color:var(--ink)}
+  .themebtn:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--signal-ink);margin:34px 0 12px;display:flex;align-items:center;gap:9px}
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+
+  /* role cards */
+  .role{border:1px solid var(--rule-strong);background:var(--panel);margin-bottom:14px}
+  .role .hdr{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 14px;border-bottom:1px solid var(--rule);background:var(--sunk);flex-wrap:wrap}
+  .role .rname{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+  .role .face{font-family:var(--mono);font-size:12px;color:var(--ink)}
+  .role .face b{color:var(--signal-ink)}
+  .role .body{padding:14px}
+  .samp-display{font-family:var(--display);font-size:33px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;line-height:1.02;margin:0 0 6px;text-wrap:balance}
+  .samp-body{font-family:var(--body);font-size:15px;max-width:58ch;margin:0}
+  .samp-body .lead{font-weight:600}
+  .samp-mono{font-family:var(--mono);font-size:15px;margin:0}
+  .fallnote{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:10px;border-top:1px dashed var(--rule);padding-top:7px}
+
+  /* scale ramp */
+  .ramp{border:1px solid var(--rule-strong)}
+  .ramp .r{display:flex;align-items:baseline;gap:14px;padding:8px 14px;border-top:1px solid var(--rule)}
+  .ramp .r:first-child{border-top:none}
+  .ramp .meta{font-family:var(--mono);font-size:10.5px;color:var(--ink-2);min-width:150px;letter-spacing:.02em}
+  .ramp .meta b{color:var(--ink)}
+  .ramp .demo{font-family:var(--display);text-transform:uppercase;letter-spacing:.05em;color:var(--ink);line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* data / readout demo */
+  .readout{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--rule-strong)}
+  .cell{padding:11px 13px;border-left:1px solid var(--rule)}
+  .cell:first-child{border-left:none}
+  .cell.lead{background:var(--sunk)}
+  .cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+  .cell .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:23px;font-weight:600;margin-top:3px}
+  .cell.lead .v{color:var(--signal-ink)}
+  .cell .v small{font-size:12px;color:var(--ink-2);font-weight:500;margin-left:2px}
+
+  table.data{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;margin-top:12px}
+  table.data th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);text-align:right;font-weight:500;padding:6px 12px;border-bottom:1px solid var(--rule-strong)}
+  table.data th:first-child{text-align:left}
+  table.data td{padding:5px 12px;border-bottom:1px solid var(--rule);text-align:right}
+  table.data td:first-child{text-align:left;color:var(--ink-2)}
+  table.data td.sig{color:var(--signal-ink)}
+  .formula{font-family:var(--mono);font-size:15px;background:var(--panel);border:1px solid var(--rule);padding:12px 14px;margin-top:12px}
+  .lab-demo{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .lab-demo span{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);border:1px solid var(--rule-strong);padding:5px 9px}
+
+  .note{font-family:var(--mono);font-size:11px;color:var(--ink-3);line-height:1.7;margin-top:28px;border-top:1px solid var(--rule);padding-top:12px}
+  .note b{color:var(--ink-2)}
+  @media (max-width:640px){.readout{grid-template-columns:repeat(2,1fr)}.cell:nth-child(3){border-left:none}}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <h1>Type Specimen</h1>
+      <div class="sub">Loading Coil tool · engineering-datasheet identity (ADR-0006)</div>
+    </div>
+    <div>
+      <div class="partno">SET <b>Saira SC · Plex Sans · Plex Mono</b><br>LICENSE <b>all OFL</b><br>REF <b>ticket 04</b></div>
+      <button class="themebtn" id="theme" type="button">◐ Theme</button>
+    </div>
+  </header>
+
+  <div class="eyebrow">Three roles</div>
+
+  <div class="role">
+    <div class="hdr"><span class="rname">Display</span><span class="face"><b>Saira Semi Condensed</b> · 600–700 · uppercase, tracked</span></div>
+    <div class="body">
+      <p class="samp-display">Loading Coil — Center Loaded</p>
+      <p class="samp-body">Used with restraint: mastheads, section headers, the coil FIG label. The slight condensation reads as instrument panel / datasheet, and stays clear of the Inter / Space Grotesk default look.</p>
+      <div class="fallnote">TARGET: Saira Semi Condensed 700 · shown here in a condensed system fallback (glyphs differ; scale &amp; tracking are representative).</div>
+    </div>
+  </div>
+
+  <div class="role">
+    <div class="hdr"><span class="rname">Body</span><span class="face"><b>IBM Plex Sans</b> · 400 / 600 · sentence case</span></div>
+    <div class="body">
+      <p class="samp-body"><span class="lead">Resonate an electrically short radiator.</span> Enter a frequency and radiator length; the tool computes the inductance needed, then the turns, diameter, and length of a buildable coil. Every figure is derived and cited — Plex Sans is engineered and even, legible down to caption sizes, and shares its skeleton with Plex Mono for a coherent datasheet voice.</p>
+      <div class="fallnote">TARGET: IBM Plex Sans 400 · shown in a system-sans fallback.</div>
+    </div>
+  </div>
+
+  <div class="role">
+    <div class="hdr"><span class="rname">Data / formula</span><span class="face"><b>IBM Plex Mono</b> · tabular · all numbers</span></div>
+    <div class="body">
+      <p class="samp-mono">L = 12.47 µH &nbsp; N = 41.3 t &nbsp; Zc = 381 Ω &nbsp; Q ≈ 210</p>
+      <p class="samp-mono">X = −Zc·cot(βℓ) &nbsp; β = 2π/(λ·VF)</p>
+      <div class="fallnote">TARGET: IBM Plex Mono · shown in a system-mono fallback. Tabular numerals are on (numbers align in columns).</div>
+    </div>
+  </div>
+
+  <div class="eyebrow">Scale ramp — display</div>
+  <div class="ramp">
+    <div class="r"><span class="meta"><b>34 px</b> / 700 · masthead</span><span class="demo" style="font-size:34px;font-weight:700">Loading Coil</span></div>
+    <div class="r"><span class="meta"><b>20 px</b> / 700 · section</span><span class="demo" style="font-size:20px;font-weight:700">Reactance balance</span></div>
+    <div class="r"><span class="meta"><b>15 px</b> / 400 · body (Plex Sans)</span><span class="demo" style="font-family:var(--body);font-size:15px;text-transform:none;letter-spacing:0">Trim to resonance after building.</span></div>
+    <div class="r"><span class="meta"><b>11 px</b> / mono · label, .12em</span><span class="demo" style="font-family:var(--mono);font-size:11px;letter-spacing:.12em">SOLVE FOR · POSITION · UNITS</span></div>
+  </div>
+
+  <div class="eyebrow">Data in place — the datasheet's real job</div>
+  <div class="readout">
+    <div class="cell lead"><div class="k">Required L</div><div class="v tnum">12.47<small>µH</small></div></div>
+    <div class="cell"><div class="k">Turns N</div><div class="v tnum">41.3</div></div>
+    <div class="cell"><div class="k">Zc</div><div class="v tnum">381<small>Ω</small></div></div>
+    <div class="cell"><div class="k">Q est</div><div class="v tnum">210</div></div>
+    <div class="cell"><div class="k">f-self</div><div class="v tnum">28.4<small>MHz</small></div></div>
+  </div>
+
+  <table class="data">
+    <thead><tr><th>Section</th><th>length</th><th>β·ℓ</th><th>reactance</th></tr></thead>
+    <tbody>
+      <tr><td>lower stub</td><td>1.250 m</td><td>21.4°</td><td>−972 Ω</td></tr>
+      <tr><td>upper stub</td><td>1.250 m</td><td>21.4°</td><td>−972 Ω</td></tr>
+      <tr><td>loading coil</td><td>—</td><td>—</td><td class="sig">+1944 Ω</td></tr>
+      <tr><td>Σ jX</td><td>—</td><td>—</td><td>0 Ω ✓</td></tr>
+    </tbody>
+  </table>
+
+  <div class="formula">X<sub>sec</sub> = −Zc · cot(β·ℓ)&nbsp;&nbsp;·&nbsp;&nbsp;Zc = 60·[ln(2H/a) − 1]&nbsp;&nbsp;·&nbsp;&nbsp;L = k<sub>L</sub>(ℓ/d)·µ₀·N²·A/ℓ</div>
+
+  <div class="lab-demo">
+    <span>Solve for</span><span>Loading position</span><span>Velocity factor</span><span>Units</span><span>Wire AWG</span>
+  </div>
+
+  <p class="note">
+    <b>Recommendation:</b> Display <b>Saira Semi Condensed</b>, Body <b>IBM Plex Sans</b>, Data <b>IBM Plex Mono</b> — all SIL OFL, self-hostable, coherent (Plex Sans+Mono share DNA; Saira adds condensed masthead character), and clear of the Inter/Space-Grotesk AI-default cluster.<br>
+    <b>Production:</b> self-host WOFF2 subsets via @font-face data-URI (CSP blocks CDNs); subset to Latin + the glyphs µ Ω β λ Σ · − °; enable tabular-nums on Plex Mono &amp; on Plex Sans where digits column. This specimen uses labeled system fallbacks — the exact glyph shapes are not shown, but scale, weight, tracking, and tabular alignment are.
+  </p>
+</div>
+
+<script>
+  document.getElementById('theme').addEventListener('click',function(){
+    var r=document.documentElement, cur=r.getAttribute('data-theme');
+    if(!cur){cur=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}
+    r.setAttribute('data-theme',cur==='dark'?'light':'dark');
+  });
+</script>

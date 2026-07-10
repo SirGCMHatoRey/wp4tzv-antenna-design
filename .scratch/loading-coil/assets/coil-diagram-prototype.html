@@ -1,0 +1,504 @@
+<title>Loading Coil — datasheet diagram prototype</title>
+<style>
+  :root{
+    --paper:#F1F2EE; --panel:#FAFBF7; --sunk:#EBEDE6;
+    --ink:#161A1D; --ink-2:#5C635D; --ink-3:#868D86;
+    --rule:#D2D7CF; --rule-strong:#B4BAB1; --grid:#E2E6DE;
+    --signal:#B87514; --signal-soft:#F0E2C6; --signal-ink:#7E5107;
+    --critical:#9E2B22; --critical-soft:#F1DCD8;
+    --ok:#38614A;
+    --display:"Helvetica Neue","Arial Nova",Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0E1114; --panel:#151A1C; --sunk:#0A0D0F;
+      --ink:#E9EBE6; --ink-2:#9AA29B; --ink-3:#6E766E;
+      --rule:#272D29; --rule-strong:#3A413C; --grid:#1C221D;
+      --signal:#E0A63C; --signal-soft:#3A2E13; --signal-ink:#EAB559;
+      --critical:#D8695E; --critical-soft:#3A1E1A;
+      --ok:#7FB394;
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#F1F2EE; --panel:#FAFBF7; --sunk:#EBEDE6;
+    --ink:#161A1D; --ink-2:#5C635D; --ink-3:#868D86;
+    --rule:#D2D7CF; --rule-strong:#B4BAB1; --grid:#E2E6DE;
+    --signal:#B87514; --signal-soft:#F0E2C6; --signal-ink:#7E5107;
+    --critical:#9E2B22; --critical-soft:#F1DCD8; --ok:#38614A;
+  }
+  :root[data-theme="dark"]{
+    --paper:#0E1114; --panel:#151A1C; --sunk:#0A0D0F;
+    --ink:#E9EBE6; --ink-2:#9AA29B; --ink-3:#6E766E;
+    --rule:#272D29; --rule-strong:#3A413C; --grid:#1C221D;
+    --signal:#E0A63C; --signal-soft:#3A2E13; --signal-ink:#EAB559;
+    --critical:#D8695E; --critical-soft:#3A1E1A; --ok:#7FB394;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--display);font-size:15px;line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 20px 60px}
+
+  /* ---- masthead ---- */
+  .mast{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:16px;border-bottom:2px solid var(--ink);padding-bottom:10px;flex-wrap:wrap;
+  }
+  .mast h1{
+    font-size:23px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+    margin:0;text-wrap:balance;
+  }
+  .mast .sub{color:var(--ink-2);font-size:12px;letter-spacing:.05em;margin-top:3px}
+  .partno{
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-2);
+    text-align:right;line-height:1.7;letter-spacing:.02em;
+  }
+  .partno b{color:var(--ink);font-weight:600}
+  .themebtn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    background:transparent;color:var(--ink-2);border:1px solid var(--rule-strong);
+    padding:5px 9px;cursor:pointer;margin-top:6px;
+  }
+  .themebtn:hover{color:var(--ink);border-color:var(--ink)}
+
+  /* ---- summary readout strip: numbers first ---- */
+  .readout{
+    display:grid;grid-template-columns:repeat(5,1fr);
+    border:1px solid var(--rule-strong);border-top:none;margin-top:0;
+  }
+  .cell{padding:11px 13px;border-left:1px solid var(--rule)}
+  .cell:first-child{border-left:none}
+  .cell .k{
+    font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2);
+    display:flex;align-items:center;gap:5px;
+  }
+  .cell .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;margin-top:3px}
+  .cell .v small{font-size:12px;color:var(--ink-2);font-weight:500;margin-left:2px}
+  .cell.lead{background:var(--sunk)}
+  .cell.lead .v{color:var(--signal-ink)}
+  .est{font-size:9px;color:var(--signal-ink);border:1px solid var(--signal);border-radius:2px;padding:0 3px;letter-spacing:.06em}
+
+  /* status chip */
+  .statusbar{
+    display:flex;align-items:center;gap:10px;border:1px solid var(--rule-strong);border-top:none;
+    padding:9px 13px;font-size:13px;
+  }
+  .chip{
+    font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 8px;border:1px solid;white-space:nowrap;
+  }
+  .chip.ok{color:var(--ok);border-color:var(--ok)}
+  .chip.warn{color:var(--signal-ink);border-color:var(--signal);background:var(--signal-soft)}
+  .chip.block{color:var(--critical);border-color:var(--critical);background:var(--critical-soft)}
+  .statusmsg{color:var(--ink-2)}
+  .statusmsg b{color:var(--ink)}
+
+  /* ---- body grid ---- */
+  .grid{display:grid;grid-template-columns:270px 1fr;gap:0;border:1px solid var(--rule-strong);border-top:none}
+  .controls{border-right:1px solid var(--rule);padding:15px 15px 18px;background:var(--panel)}
+  .stagelabel{
+    font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2);
+    border-bottom:1px solid var(--rule);padding-bottom:5px;margin:16px 0 11px;display:flex;justify-content:space-between;
+  }
+  .stagelabel:first-child{margin-top:0}
+  .stagelabel .n{font-family:var(--mono);color:var(--signal-ink)}
+  .field{margin-bottom:11px}
+  .field label{display:block;font-size:11px;letter-spacing:.04em;color:var(--ink-2);margin-bottom:4px;text-transform:uppercase}
+  .field .row{display:flex;align-items:center;gap:7px}
+  input[type=number],select{
+    width:100%;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px;
+    background:var(--paper);color:var(--ink);border:1px solid var(--rule-strong);padding:6px 8px;
+  }
+  input[type=range]{width:100%;accent-color:var(--signal)}
+  .unit{font-family:var(--mono);font-size:12px;color:var(--ink-2);min-width:26px}
+  input:focus,select:focus,button:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+  .seg{display:flex;border:1px solid var(--rule-strong)}
+  .seg button{
+    flex:1;font-family:var(--mono);font-size:12px;background:var(--paper);color:var(--ink-2);
+    border:none;border-left:1px solid var(--rule);padding:6px 4px;cursor:pointer;letter-spacing:.03em;
+  }
+  .seg button:first-child{border-left:none}
+  .seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+  .solvenote{font-size:10.5px;color:var(--ink-3);margin-top:5px;font-family:var(--mono)}
+
+  /* ---- diagram hero ---- */
+  .hero{padding:16px 18px 20px;min-width:0}
+  .heroTop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .heroTop .t{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2)}
+  .heroTop .g{font-family:var(--mono);font-size:12px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .canvaswrap{position:relative;width:100%;background:
+    linear-gradient(var(--grid) 1px,transparent 1px) 0 0/100% 22px,
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/22px 100%,
+    var(--panel);
+    border:1px solid var(--rule);}
+  canvas{display:block;width:100%;height:auto}
+
+  /* ---- reactance balance beam: the signature ---- */
+  .beam{padding:14px 18px 4px}
+  .beamhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .beamhead .t{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2)}
+  .beamhead .sum{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+  .beamhead .sum.res{color:var(--ok)}
+  .axis{position:relative;height:96px;border-left:1px solid var(--rule-strong)}
+  .zero{position:absolute;left:0;right:0;top:50%;border-top:1px solid var(--ink);}
+  .zerolab{position:absolute;left:4px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--ink-2);background:var(--paper);padding:0 3px}
+  .bar{position:absolute;width:64px;box-sizing:border-box}
+  .bar .lab{font-family:var(--mono);font-size:10px;text-align:center;color:var(--ink-2);position:absolute;left:0;right:0;white-space:nowrap}
+  .bar .val{font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;text-align:center;position:absolute;left:-8px;right:-8px}
+  .bar.cap{background:repeating-linear-gradient(-45deg,var(--rule-strong) 0 1px,transparent 1px 5px);border:1px solid var(--rule-strong)}
+  .bar.ind{background:var(--signal-soft);border:1px solid var(--signal)}
+  .legend{display:flex;gap:18px;margin-top:8px;font-size:11px;color:var(--ink-2);flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .sw{width:20px;height:11px;display:inline-block;border:1px solid}
+  .sw.cap{background:repeating-linear-gradient(-45deg,var(--rule-strong) 0 1px,transparent 1px 5px);border-color:var(--rule-strong)}
+  .sw.ind{background:var(--signal-soft);border-color:var(--signal)}
+
+  .foot{margin-top:16px;font-size:11px;color:var(--ink-3);font-family:var(--mono);line-height:1.7}
+  .foot b{color:var(--ink-2);font-weight:600}
+
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr}
+    .controls{border-right:none;border-bottom:1px solid var(--rule)}
+    .readout{grid-template-columns:repeat(2,1fr)}
+    .cell:nth-child(3){border-left:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  .bar,.cell .v{transition:all .18s ease}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <h1>Loading Coil</h1>
+      <div class="sub">Resonate a short radiator — required inductance &amp; buildable coil geometry</div>
+    </div>
+    <div>
+      <div class="partno">TOOL <b>/tools/loading-coil</b><br>METHOD <b>closed-form · Nagaoka</b><br>REF <b>ADR-0007</b></div>
+      <button class="themebtn" id="theme" type="button">◐ Theme</button>
+    </div>
+  </header>
+
+  <!-- numbers first -->
+  <section class="readout" aria-label="Results">
+    <div class="cell lead">
+      <div class="k">Required L</div>
+      <div class="v" id="r-L">—<small>µH</small></div>
+    </div>
+    <div class="cell">
+      <div class="k">Turns N</div>
+      <div class="v" id="r-N">—</div>
+    </div>
+    <div class="cell">
+      <div class="k">Zc <span class="est" title="exposed, not hidden">EXPOSED</span></div>
+      <div class="v" id="r-Zc">—<small>Ω</small></div>
+    </div>
+    <div class="cell">
+      <div class="k">Q <span class="est">EST</span></div>
+      <div class="v" id="r-Q">—</div>
+    </div>
+    <div class="cell">
+      <div class="k">f-self <span class="est">EST</span></div>
+      <div class="v" id="r-fs">—<small>MHz</small></div>
+    </div>
+  </section>
+
+  <div class="statusbar">
+    <span class="chip ok" id="chip">OK</span>
+    <span class="statusmsg" id="msg">Enter a design.</span>
+  </div>
+
+  <div class="grid">
+    <!-- controls -->
+    <aside class="controls">
+      <div class="stagelabel"><span>Stage 1 · electrical</span><span class="n">→ L</span></div>
+      <div class="field">
+        <label for="f">Design frequency</label>
+        <div class="row"><input type="number" id="f" value="7.15" step="0.01" min="0.1"><span class="unit">MHz</span></div>
+      </div>
+      <div class="field">
+        <label for="pos">Loading position — <span id="posv" class="unit" style="color:var(--signal-ink)">center</span></label>
+        <input type="range" id="pos" min="0" max="100" value="50">
+      </div>
+      <div class="field">
+        <label for="H">Radiator height H</label>
+        <div class="row"><input type="number" id="H" value="2.5" step="0.05" min="0.05"><span class="unit">m</span></div>
+      </div>
+      <div class="field">
+        <label for="a">Conductor radius a</label>
+        <div class="row"><input type="number" id="a" value="3.2" step="0.1" min="0.1"><span class="unit">mm</span></div>
+      </div>
+      <div class="field">
+        <label for="vf">Velocity factor <span class="unit" title="conductor propagation only — not end-effect k">VF</span></label>
+        <div class="row"><input type="number" id="vf" value="0.95" step="0.01" min="0.5" max="1"></div>
+      </div>
+
+      <div class="stagelabel"><span>Stage 2 · geometry</span><span class="n">solve</span></div>
+      <div class="field">
+        <label>Solve for</label>
+        <div class="seg" id="mode" role="group" aria-label="Solve target">
+          <button type="button" data-m="N" aria-pressed="true">N</button>
+          <button type="button" data-m="d" aria-pressed="false">d</button>
+          <button type="button" data-m="len" aria-pressed="false">ℓ</button>
+        </div>
+        <div class="solvenote" id="solvenote">fixing d, ℓ → solving turns</div>
+      </div>
+      <div class="field" id="f-d">
+        <label for="d">Form diameter d</label>
+        <div class="row"><input type="number" id="d" value="25" step="1" min="1"><span class="unit">mm</span></div>
+      </div>
+      <div class="field" id="f-len">
+        <label for="len">Coil length ℓ</label>
+        <div class="row"><input type="number" id="len" value="60" step="1" min="1"><span class="unit">mm</span></div>
+      </div>
+      <div class="field" id="f-N">
+        <label for="Nin">Turns N</label>
+        <div class="row"><input type="number" id="Nin" value="40" step="1" min="1"><span class="unit">t</span></div>
+      </div>
+      <div class="field">
+        <label for="awg">Wire</label>
+        <div class="row"><input type="number" id="awg" value="18" step="1" min="8" max="40"><span class="unit">AWG</span></div>
+      </div>
+    </aside>
+
+    <!-- hero diagram -->
+    <section class="hero">
+      <div class="heroTop"><span class="t">Wound coil — single-layer air core</span><span class="g" id="geom">d — · ℓ — · N —</span></div>
+      <div class="canvaswrap"><canvas id="coil" width="720" height="300"></canvas></div>
+
+      <div class="beam">
+        <div class="beamhead">
+          <span class="t">Reactance balance — Σ jX at the coil</span>
+          <span class="sum" id="beamsum">—</span>
+        </div>
+        <div class="axis" id="axis">
+          <div class="zero"></div><span class="zerolab">jX = 0</span>
+        </div>
+        <div class="legend">
+          <span><i class="sw cap"></i> capacitive −jX (short radiator)</span>
+          <span><i class="sw ind"></i> inductive +jX (loading coil)</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="foot">
+    <b>Prototype scope:</b> Stage-1 reactance uses the closed-form stub Zc = 60·[ln(2H/a)−1], X = −Zc·cot(βℓ), β = 2π/(λ·VF) — real per ADR-0007.
+    <b>Coil geometry, Q and f-self are placeholder estimates</b> (marked EST) pending the ticket <b>Nagaoka &amp; Medhurst coefficient basis</b>; solve-modes d/ℓ need the root-finder from that ticket, so this prototype solves N.
+    This artifact answers <b>look &amp; behavior</b> only.
+  </p>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var C=299.792458; // m·MHz
+
+  // theme toggle
+  $('theme').addEventListener('click',function(){
+    var r=document.documentElement;
+    var cur=r.getAttribute('data-theme');
+    if(!cur){cur=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}
+    r.setAttribute('data-theme',cur==='dark'?'light':'dark');
+    draw();
+  });
+
+  var mode='N';
+  var modeEl=$('mode');
+  modeEl.addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b)return;
+    mode=b.dataset.m;
+    [].forEach.call(modeEl.children,function(x){x.setAttribute('aria-pressed', x===b);});
+    // which field becomes the computed output (disabled)
+    $('f-N').style.opacity = mode==='N'?'.55':'1';
+    $('f-d').style.opacity = mode==='d'?'.55':'1';
+    $('f-len').style.opacity = mode==='len'?'.55':'1';
+    $('Nin').disabled = mode==='N';
+    $('d').disabled = mode==='d';
+    $('len').disabled = mode==='len';
+    var note={N:'fixing d, ℓ → solving turns',d:'fixing N, ℓ → solving diameter',len:'fixing N, d → solving length'};
+    $('solvenote').textContent=note[mode];
+    recompute();
+  });
+
+  $('pos').addEventListener('input',function(){
+    var p=+$('pos').value;
+    $('posv').textContent = p===0?'base':(p===50?'center':(p===100?'tip':p+'%'));
+  });
+
+  var awgDia=function(g){return 0.127*Math.pow(92,(36-g)/39);}; // mm
+  function num(id){return parseFloat($(id).value);}
+
+  var state={};
+  function recompute(){
+    var f=num('f'), Hm=num('H'), a=num('a')/1000, vf=num('vf');
+    var p=+$('pos').value/100;
+    var d=num('d'), len=num('len'), Ntry=num('Nin'), awg=num('awg');
+    var lam=C/f, beta=2*Math.PI/(lam*vf);
+    var Zc=60*(Math.log(2*Hm/a)-1);
+    var cot=function(x){var s=Math.sin(x); if(Math.abs(s)<1e-6)s=1e-6; return Math.cos(x)/s;};
+    var hc=p*Hm, lower=hc, upper=Hm-hc;
+    var Xlo = lower>1e-3 ? -Zc*cot(beta*lower) : 0;
+    var Xup = upper>1e-3 ? -Zc*cot(beta*upper) : 0;
+    var XL = -(Xlo+Xup);                       // required inductive reactance
+    var LuH = XL/(2*Math.PI*f*1e6)*1e6;         // µH
+    // stage2 placeholder (Wheeler continuous) — solve N only in prototype
+    var rIn=(d/2)/25.4, lenIn=len/25.4;
+    var N = Ntry;
+    if(mode==='N' && LuH>0){ N=Math.sqrt(LuH*(9*rIn+10*lenIn)/(rIn*rIn)); }
+    N=Math.max(1,N);
+    // wire fit
+    var wd=awgDia(awg), closeLen=N*wd;
+    // crude EST Q & f-self (placeholder)
+    var Q = 0.95*Math.sqrt(f)*d*Math.pow(len/(len+0.9*d),0.5)*4; Q=Math.round(Q);
+    var Cpf = 0.11*(d)+0.6; var fs = 1/(2*Math.PI*Math.sqrt((LuH*1e-6)*(Cpf*1e-12)))/1e6;
+
+    // status
+    var st='ok', msg='Coil resonates the radiator. <b>Trim to resonance</b> after building (±~10%).';
+    if(XL<=0){ st='block'; msg='Radiator is already at/over resonance here — <b>no loading coil needed</b>. Shorten H or move the coil up.'; }
+    else if(mode==='N' && closeLen>len){ st='block'; msg='Wire won’t fit: '+N.toFixed(0)+' close-wound turns need '+closeLen.toFixed(0)+' mm but ℓ is '+len+' mm. <b>Use a coarser AWG or a longer coil.</b>'; }
+    else if(Q<60 || fs < f*2.2){ st='warn'; var why=[]; if(Q<60)why.push('low Q'); if(fs<f*2.2)why.push('near self-resonance'); msg='Buildable, but '+why.join(' & ')+'. Consider a larger form or fewer turns.'; }
+
+    state={f:f,Hm:Hm,a:a,vf:vf,p:p,d:d,len:len,N:N,Zc:Zc,XL:XL,LuH:LuH,Xlo:Xlo,Xup:Xup,st:st,lower:lower,upper:upper};
+
+    // readouts
+    $('r-L').innerHTML = (LuH>0?LuH.toFixed(2):'—')+'<small>µH</small>';
+    $('r-N').textContent = (st==='block'&&XL<=0)?'—':N.toFixed(1);
+    $('r-Zc').innerHTML = Zc.toFixed(0)+'<small>Ω</small>';
+    $('r-Q').innerHTML = (LuH>0?Q:'—');
+    $('r-fs').innerHTML = (LuH>0?fs.toFixed(1):'—')+'<small>MHz</small>';
+    $('geom').textContent='d '+d+'mm · ℓ '+len+'mm · N '+N.toFixed(1);
+
+    var chip=$('chip'); chip.className='chip '+st; chip.textContent=st.toUpperCase();
+    $('msg').innerHTML=msg;
+
+    drawBeam(); draw();
+  }
+
+  // ---- coil canvas ----
+  function draw(){
+    var cv=$('coil'), ctx=cv.getContext('2d');
+    var cssw=cv.clientWidth||720; var ratio=window.devicePixelRatio||1;
+    var W=cssw, Hh=300;
+    cv.width=W*ratio; cv.height=Hh*ratio; cv.style.height=Hh+'px';
+    ctx.setTransform(ratio,0,0,ratio,0,0);
+    var css=getComputedStyle(document.documentElement);
+    var ink=css.getPropertyValue('--ink').trim(), ink2=css.getPropertyValue('--ink-2').trim(),
+        sig=css.getPropertyValue('--signal').trim(), rule=css.getPropertyValue('--rule-strong').trim(),
+        panel=css.getPropertyValue('--panel').trim();
+    ctx.clearRect(0,0,W,Hh);
+    var s=state; if(!s.d) return;
+
+    // layout: coil centered
+    var cx=W/2, cy=Hh/2+6;
+    var maxLen=W*0.52, maxDia=150;
+    var aspect=s.len/s.d;
+    var pxLen=Math.min(maxLen, Math.max(120, aspect*70));
+    var pxDia=Math.min(maxDia, Math.max(56, pxLen/Math.max(aspect,0.35)));
+    var x0=cx-pxLen/2, x1=cx+pxLen/2, ry=pxDia/2, rx=Math.min(11,pxLen/ (Math.min(s.N,40))/1.4);
+
+    // form (dashed core line)
+    ctx.strokeStyle=rule; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(x0-26,cy); ctx.lineTo(x1+26,cy); ctx.stroke(); ctx.setLineDash([]);
+
+    // turns
+    var turns=Math.max(3,Math.min(40,Math.round(s.N)));
+    var step=(pxLen)/(turns);
+    ctx.lineWidth=2; ctx.lineCap='round';
+    for(var i=0;i<turns;i++){
+      var x=x0+step*(i+0.5);
+      ctx.strokeStyle = (i===Math.floor(turns/2))? sig : ink;
+      ctx.beginPath();
+      ctx.ellipse(x,cy,rx,ry,0,Math.PI*0.5,Math.PI*1.5,false); // back
+      ctx.stroke();
+      ctx.strokeStyle = (i===Math.floor(turns/2))? sig : ink2;
+      ctx.beginPath();
+      ctx.ellipse(x,cy,rx,ry,0,Math.PI*1.5,Math.PI*0.5,false); // front
+      ctx.stroke();
+    }
+    // leads
+    ctx.strokeStyle=ink; ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x0-26,cy+ry*0.2);ctx.lineTo(x0+step*0.5,cy+ry);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x1+26,cy+ry*0.2);ctx.lineTo(x1-step*0.5,cy+ry);ctx.stroke();
+
+    // ---- dimension callouts ----
+    ctx.fillStyle=ink2; ctx.strokeStyle=ink2; ctx.lineWidth=1;
+    ctx.font='11px ui-monospace,Consolas,monospace'; ctx.textAlign='center';
+    // ℓ (length) below
+    var yL=cy+ry+34;
+    dimLine(ctx,x0,yL,x1,yL);
+    ctx.fillStyle=ink; ctx.fillText('ℓ = '+fmtLen(s.len), cx, yL+15);
+    // d (diameter) left
+    var xD=x0-42;
+    dimLineV(ctx,xD,cy-ry,xD,cy+ry);
+    ctx.save();ctx.translate(xD-13,cy);ctx.rotate(-Math.PI/2);ctx.fillStyle=ink;ctx.fillText('d = '+fmtLen(s.d),0,0);ctx.restore();
+    // N callout to the highlighted turn
+    var mx=x0+step*(Math.floor(turns/2)+0.5);
+    ctx.strokeStyle=sig;ctx.setLineDash([2,3]);
+    ctx.beginPath();ctx.moveTo(mx,cy-ry);ctx.lineTo(mx,cy-ry-26);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=sig; ctx.font='bold 12px ui-monospace,Consolas,monospace';
+    ctx.fillText('N = '+s.N.toFixed(1)+' t', mx, cy-ry-32);
+
+    // corner tag
+    ctx.textAlign='left'; ctx.fillStyle=ink2; ctx.font='10px ui-monospace,Consolas,monospace';
+    ctx.fillText('FIG.1  '+(s.p===0?'BASE':s.p===0.5?'CENTER':(Math.round(s.p*100)+'%'))+' LOADED', 12, 20);
+  }
+  function fmtLen(mm){ return mm>=1000? (mm/1000).toFixed(2)+' m' : mm.toFixed(0)+' mm'; }
+  function dimLine(ctx,x0,y,x1,y1){
+    ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y1);ctx.stroke();
+    tick(ctx,x0,y);tick(ctx,x1,y1);
+  }
+  function tick(ctx,x,y){ctx.beginPath();ctx.moveTo(x,y-4);ctx.lineTo(x,y+4);ctx.stroke();}
+  function dimLineV(ctx,x0,y0,x1,y1){
+    ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x0-4,y0);ctx.lineTo(x0+4,y0);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x1-4,y1);ctx.lineTo(x1+4,y1);ctx.stroke();
+  }
+
+  // ---- reactance balance beam ----
+  function drawBeam(){
+    var s=state, ax=$('axis');
+    // clear old bars
+    [].slice.call(ax.querySelectorAll('.bar')).forEach(function(n){n.remove();});
+    if(!s.d){return;}
+    var H=96, mid=H/2;
+    var vals=[]; // {name,val}
+    if(Math.abs(s.Xlo)>0.5) vals.push({n:'−jX lower',v:s.Xlo,cls:'cap'});
+    if(Math.abs(s.Xup)>0.5) vals.push({n:'−jX upper',v:s.Xup,cls:'cap'});
+    if(s.XL>0) vals.push({n:'+jX coil',v:s.XL,cls:'ind'});
+    var maxAbs=Math.max.apply(null,vals.map(function(o){return Math.abs(o.v)}).concat([1]));
+    var slots=vals.length, gap=72;
+    var startX=90;
+    vals.forEach(function(o,i){
+      var b=document.createElement('div'); b.className='bar '+o.cls;
+      var h=Math.max(6,Math.abs(o.v)/maxAbs*(mid-8));
+      b.style.left=(startX+i*gap)+'px';
+      if(o.v<0){ b.style.top=mid+'px'; b.style.height=h+'px'; }
+      else { b.style.top=(mid-h)+'px'; b.style.height=h+'px'; }
+      var val=document.createElement('div'); val.className='val';
+      val.style.color=o.v<0?'var(--ink-2)':'var(--signal-ink)';
+      val.textContent=(o.v>0?'+':'')+o.v.toFixed(0)+'Ω';
+      val.style[o.v<0?'top':'bottom']='calc(100% + 2px)';
+      var lab=document.createElement('div'); lab.className='lab';
+      lab.textContent=o.n; lab.style[o.v<0?'bottom':'top']='calc(100% + 15px)';
+      b.appendChild(val); b.appendChild(lab); ax.appendChild(b);
+    });
+    var sum=s.Xlo+s.Xup+ (s.XL>0?s.XL:0);
+    var el=$('beamsum');
+    if(s.XL>0){ el.textContent='Σ jX = '+sum.toFixed(1)+' Ω  ✓ resonant'; el.className='sum res'; }
+    else { el.textContent='no coil required'; el.className='sum'; }
+  }
+
+  // init
+  ['f','H','a','vf','d','len','Nin','awg'].forEach(function(id){
+    $(id).addEventListener('input',recompute);
+  });
+  $('pos').addEventListener('input',recompute);
+  $('Nin').disabled=true; $('f-N').style.opacity='.55';
+  window.addEventListener('resize',draw);
+  recompute();
+})();
+</script>

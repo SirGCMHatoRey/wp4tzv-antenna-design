@@ -1,0 +1,250 @@
+<title>Antenna Portal — design system & app shell</title>
+<style>
+  :root{
+    --paper:#F1F2EE; --panel:#FAFBF7; --sunk:#EBEDE6;
+    --ink:#161A1D; --ink-2:#5C635D; --ink-3:#868D86;
+    --rule:#D2D7CF; --rule-strong:#B4BAB1; --grid:#E2E6DE;
+    --signal:#B87514; --signal-ink:#7E5107; --signal-soft:#F0E2C6;
+    --critical:#9E2B22; --critical-soft:#F1DCD8; --ok:#38614A; --ok-soft:#DDE8DF;
+    --sp:8px;
+    --display:"Saira SemiCondensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+    --body:"IBM Plex Sans",system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"Cascadia Code","SF Mono",Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0E1114;--panel:#151A1C;--sunk:#0A0D0F;--ink:#E9EBE6;--ink-2:#9AA29B;--ink-3:#6E766E;
+    --rule:#272D29;--rule-strong:#3A413C;--grid:#1C221D;--signal:#E0A63C;--signal-ink:#EAB559;--signal-soft:#3A2E13;
+    --critical:#D8695E;--critical-soft:#3A1E1A;--ok:#7FB394;--ok-soft:#18241C;}}
+  :root[data-theme="light"]{--paper:#F1F2EE;--panel:#FAFBF7;--sunk:#EBEDE6;--ink:#161A1D;--ink-2:#5C635D;--ink-3:#868D86;--rule:#D2D7CF;--rule-strong:#B4BAB1;--grid:#E2E6DE;--signal:#B87514;--signal-ink:#7E5107;--signal-soft:#F0E2C6;--critical:#9E2B22;--critical-soft:#F1DCD8;--ok:#38614A;--ok-soft:#DDE8DF;}
+  :root[data-theme="dark"]{--paper:#0E1114;--panel:#151A1C;--sunk:#0A0D0F;--ink:#E9EBE6;--ink-2:#9AA29B;--ink-3:#6E766E;--rule:#272D29;--rule-strong:#3A413C;--grid:#1C221D;--signal:#E0A63C;--signal-ink:#EAB559;--signal-soft:#3A2E13;--critical:#D8695E;--critical-soft:#3A1E1A;--ok:#7FB394;--ok-soft:#18241C;}
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* ===== app shell: masthead ===== */
+  .chrome{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:2px solid var(--ink)}
+  .chrome .row{max-width:1080px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:10px 20px}
+  .wordmark{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+  .wordmark .dot{color:var(--signal)}
+  nav.main{display:flex;gap:2px;flex-wrap:wrap}
+  nav.main a{font-family:var(--mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);text-decoration:none;padding:6px 10px;border:1px solid transparent}
+  nav.main a:hover{color:var(--ink);border-color:var(--rule)}
+  nav.main a[aria-current]{color:var(--ink);border-color:var(--rule-strong);background:var(--panel)}
+  .cf{margin-left:auto;display:flex;align-items:center;gap:7px}
+  .cf label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .cf .ipt{display:flex;align-items:center;gap:5px;border:1px solid var(--rule-strong);background:var(--panel);padding:4px 7px}
+  .cf input{border:none;background:transparent;color:var(--ink);font-family:var(--mono);font-size:13px;width:64px}
+  .cf input:focus{outline:none}.cf .u{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .themebtn{font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;background:transparent;color:var(--ink-2);border:1px solid var(--rule-strong);padding:5px 8px;cursor:pointer}
+  .themebtn:hover{color:var(--ink);border-color:var(--ink)}
+  a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+
+  main{max-width:1080px;margin:0 auto;padding:8px 20px 70px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--signal-ink);margin:38px 0 4px;display:flex;align-items:center;gap:10px}
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
+  .eyebrow .no{color:var(--ink-3)}
+  h2.sec{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:2px 0 14px}
+  .lead{color:var(--ink-2);max-width:64ch;margin:0 0 18px}
+
+  .hero{padding:26px 0 6px}
+  .hero h1{font-family:var(--display);font-size:46px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:.98;margin:0;text-wrap:balance}
+  .hero p{color:var(--ink-2);max-width:60ch;margin:10px 0 0}
+
+  /* swatches */
+  .swgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:2px}
+  .sw{border:1px solid var(--rule)}
+  .sw .chip{height:52px}
+  .sw .n{font-family:var(--mono);font-size:10.5px;padding:5px 7px;color:var(--ink-2);border-top:1px solid var(--rule);background:var(--panel)}
+  .sw .n b{color:var(--ink);display:block;text-transform:none}
+
+  /* gallery cards */
+  .gal{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .card{border:1px solid var(--rule-strong);background:var(--panel)}
+  .card .h{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);padding:8px 13px;border-bottom:1px solid var(--rule);background:var(--sunk);display:flex;justify-content:space-between}
+  .card .h .tag{color:var(--signal-ink)}
+  .card .b{padding:14px}
+  .card .cap{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:10px;line-height:1.6}
+
+  /* component: buttons */
+  .btn{font-family:var(--mono);font-size:13px;letter-spacing:.03em;padding:8px 14px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.link{background:transparent;border-color:transparent;color:var(--signal-ink);text-decoration:underline;padding:8px 4px}
+  /* input */
+  .field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-bottom:4px}
+  .ipt{display:flex;align-items:center;gap:7px;border:1px solid var(--rule-strong);background:var(--paper);padding:7px 9px}
+  .ipt input{border:none;background:transparent;color:var(--ink);font-family:var(--mono);font-size:14px;width:100%}.ipt input:focus{outline:none}
+  .ipt .u{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .ipt.output{background:var(--sunk);border-style:dashed}.ipt.output .u{color:var(--signal-ink)}
+  .outtag{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--signal-ink);margin-left:auto}
+  /* segmented */
+  .seg{display:flex;border:1px solid var(--rule-strong);max-width:200px}
+  .seg button{flex:1;font-family:var(--mono);font-size:12px;background:var(--paper);color:var(--ink-2);border:none;border-left:1px solid var(--rule);padding:6px;cursor:pointer}
+  .seg button:first-child{border-left:none}.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+  /* readout */
+  .readout{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--rule-strong)}
+  .rcell{padding:10px 12px;border-left:1px solid var(--rule)}.rcell:first-child{border-left:none}.rcell.lead{background:var(--sunk)}
+  .rcell .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+  .rcell .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:21px;font-weight:600;margin-top:2px}.rcell.lead .v{color:var(--signal-ink)}
+  .rcell .v small{font-size:11px;color:var(--ink-2);margin-left:2px}
+  /* status */
+  .status{display:flex;align-items:center;gap:9px;border:1px solid var(--rule-strong);padding:8px 11px;font-size:13px;margin-bottom:8px}
+  .chip{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;padding:2px 7px;border:1px solid;white-space:nowrap}
+  .chip.ok{color:var(--ok);border-color:var(--ok)}.chip.warn{color:var(--signal-ink);border-color:var(--signal);background:var(--signal-soft)}.chip.block{color:var(--critical);border-color:var(--critical);background:var(--critical-soft)}
+  .status .m{color:var(--ink-2)}.status .m b{color:var(--ink)}
+  /* accuracy note + method badge — the honesty components */
+  .accuracy{border-left:3px solid var(--signal);background:var(--panel);padding:10px 13px;font-size:13px}
+  .accuracy .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal-ink)}
+  .badges{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .badge{font-family:var(--mono);font-size:10px;letter-spacing:.04em;padding:3px 7px;border:1px solid var(--rule-strong);color:var(--ink-2)}
+  .badge b{color:var(--ink)}
+  /* data table */
+  table.data{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+  table.data th{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);text-align:right;font-weight:500;padding:5px 10px;border-bottom:1px solid var(--rule-strong)}
+  table.data th:first-child{text-align:left}
+  table.data td{padding:4px 10px;border-bottom:1px solid var(--rule);text-align:right}table.data td:first-child{text-align:left;color:var(--ink-2)}
+  td.sig{color:var(--signal-ink)}
+  /* figure frame */
+  .figframe{background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/100% 20px,linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/20px 100%,var(--panel);border:1px solid var(--rule);height:110px;position:relative}
+  .figframe .tagf{position:absolute;top:6px;left:8px;font-family:var(--mono);font-size:9px;color:var(--ink-3)}
+  .figframe .demo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  /* region selector */
+  .selrow{display:flex;gap:8px;flex-wrap:wrap}
+  select{font-family:var(--mono);font-size:13px;background:var(--paper);color:var(--ink);border:1px solid var(--rule-strong);padding:6px 8px}
+
+  .spec{border:1px solid var(--rule-strong);background:var(--panel);padding:2px 0}
+  .spec .r{display:flex;gap:14px;padding:9px 14px;border-top:1px solid var(--rule);font-size:13.5px}
+  .spec .r:first-child{border-top:none}
+  .spec .r .k{font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--signal-ink);min-width:130px}
+  .spec .r .v{color:var(--ink);max-width:66ch}.spec .r .v b{font-family:var(--mono);font-size:12px}
+
+  footer{border-top:2px solid var(--ink);margin-top:44px}
+  footer .row{max-width:1080px;margin:0 auto;padding:16px 20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+
+  .banlist{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);line-height:1.9}
+  .banlist .x{color:var(--critical)}
+
+  @media (max-width:720px){.gal{grid-template-columns:1fr}.hero h1{font-size:34px}nav.main{display:none}}
+</style>
+
+<div class="chrome">
+  <div class="row">
+    <span class="wordmark">Antenna Design<span class="dot">.</span></span>
+    <nav class="main" aria-label="Primary">
+      <a href="#" aria-current="page">Home</a>
+      <a href="#">Antennas ▾</a>
+      <a href="#">Tools ▾</a>
+      <a href="#">Reference</a>
+    </nav>
+    <div class="cf">
+      <label for="cf">Center freq</label>
+      <div class="ipt"><input id="cf" value="7.150"><span class="u">MHz</span></div>
+      <button class="themebtn" id="theme" type="button">◐</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <section class="hero">
+    <h1>Design System &amp; App Shell</h1>
+    <p>The shared datasheet language every calculator is assembled from — tokens, type, the reusable components, and the static-first shell. Lifted from the Loading Coil so each of the 24 calculators is assembly, not redesign.</p>
+  </section>
+
+  <div class="eyebrow"><span class="no">01</span> Color tokens · both themes</div>
+  <div class="swgrid">
+    <div class="sw"><div class="chip" style="background:var(--paper)"></div><div class="n"><b>--paper</b> ground</div></div>
+    <div class="sw"><div class="chip" style="background:var(--panel)"></div><div class="n"><b>--panel</b> raised</div></div>
+    <div class="sw"><div class="chip" style="background:var(--sunk)"></div><div class="n"><b>--sunk</b> inset</div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink)"></div><div class="n"><b>--ink</b> text</div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink-2)"></div><div class="n"><b>--ink-2</b> muted</div></div>
+    <div class="sw"><div class="chip" style="background:var(--rule-strong)"></div><div class="n"><b>--rule</b> hairline</div></div>
+    <div class="sw"><div class="chip" style="background:var(--signal)"></div><div class="n"><b>--signal</b> amber · accent+caution</div></div>
+    <div class="sw"><div class="chip" style="background:var(--critical)"></div><div class="n"><b>--critical</b> block</div></div>
+    <div class="sw"><div class="chip" style="background:var(--ok)"></div><div class="n"><b>--ok</b> pass</div></div>
+  </div>
+  <p class="lead" style="margin-top:12px">Neutrals are warm-biased toward the amber, not pure grey. One accent (amber) carries focus + caution; critical red and pass green are the only semantic colors and never act as the accent.</p>
+
+  <div class="eyebrow"><span class="no">02</span> Type roles</div>
+  <div class="spec">
+    <div class="r"><span class="k">Display</span><span class="v" style="font-family:var(--display);font-size:22px;text-transform:uppercase;letter-spacing:.05em">Saira Semi Condensed</span></div>
+    <div class="r"><span class="k">Body</span><span class="v" style="font-family:var(--body)">IBM Plex Sans — running text, legible to caption sizes</span></div>
+    <div class="r"><span class="k">Data / formula</span><span class="v tnum" style="font-family:var(--mono)">IBM Plex Mono · 12.47 µH · X = −Zc·cot(βℓ)</span></div>
+  </div>
+
+  <div class="eyebrow"><span class="no">03</span> Component gallery</div>
+  <div class="gal">
+    <div class="card"><div class="h"><span>Action / link</span></div><div class="b">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn">Save project</button><button class="btn ghost">Share link</button><button class="btn link">Send to Loading Coil →</button></div>
+      <div class="cap">Verbs name the action; the toast that follows says “Saved”, “Copied”.</div>
+    </div></div>
+
+    <div class="card"><div class="h"><span>Input + unit</span></div><div class="b">
+      <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Frequency</label><div class="ipt"><input value="7.15"><span class="u">MHz</span></div></div>
+      <div class="field" style="flex:1"><label>Turns N</label><div class="ipt output"><input value="41.3" readonly><span class="u">t</span><span class="outtag">SOLVED</span></div></div></div>
+      <div class="cap">Solved fields go dashed + read-only with a SOLVED tag (ADR-0008 result).</div>
+    </div></div>
+
+    <div class="card"><div class="h"><span>Segmented control</span><span class="tag">solve mode</span></div><div class="b">
+      <div class="seg" id="seg"><button aria-pressed="true">N</button><button aria-pressed="false">d</button><button aria-pressed="false">ℓ</button></div>
+      <div class="cap">Flips which variable is the computed output.</div>
+    </div></div>
+
+    <div class="card"><div class="h"><span>Readout strip</span><span class="tag">numbers first</span></div><div class="b">
+      <div class="readout"><div class="rcell lead"><div class="k">Req L</div><div class="v tnum">12.47<small>µH</small></div></div><div class="rcell"><div class="k">Turns</div><div class="v tnum">41.3</div></div><div class="rcell"><div class="k">Zc</div><div class="v tnum">381<small>Ω</small></div></div></div>
+    </div></div>
+
+    <div class="card"><div class="h"><span>Status bar</span><span class="tag">ok / warn / block</span></div><div class="b">
+      <div class="status"><span class="chip ok">OK</span><span class="m">Resonates. <b>Trim to resonance.</b></span></div>
+      <div class="status"><span class="chip warn">WARN</span><span class="m">Low Q (≈45). Wider form helps.</span></div>
+      <div class="status" style="margin-bottom:0"><span class="chip block">BLOCK</span><span class="m">Wire won’t fit. <b>Coarser wire or longer coil.</b></span></div>
+    </div></div>
+
+    <div class="card"><div class="h"><span>Accuracy note + method</span><span class="tag">the honesty pair</span></div><div class="b">
+      <div class="accuracy"><span class="lab">Accuracy note</span><br>±~10%, average-Zc approximation — trim to resonance.</div>
+      <div class="badges"><span class="badge">Method <b>closed-form</b></span><span class="badge">Cite <b>ARRL / Nagaoka</b></span></div>
+      <div class="cap">Present on every approximating calculator — the anti-magic-number signature (ADR-0002/0005).</div>
+    </div></div>
+
+    <div class="card"><div class="h"><span>Data table</span></div><div class="b">
+      <table class="data"><thead><tr><th>Section</th><th>β·ℓ</th><th>reactance</th></tr></thead><tbody>
+      <tr><td>lower</td><td>21.4°</td><td>−972 Ω</td></tr><tr><td>upper</td><td>21.4°</td><td>−972 Ω</td></tr><tr><td>coil</td><td>—</td><td class="sig">+1944 Ω</td></tr></tbody></table>
+    </div></div>
+
+    <div class="card"><div class="h"><span>Figure frame</span><span class="tag">blueprint grid</span></div><div class="b">
+      <div class="figframe"><span class="tagf">FIG.1</span><span class="demo">diagram / chart mounts here</span></div>
+      <div class="cap">Shared canvas frame for coil, antenna geometry, SWR curves.</div>
+    </div></div>
+
+    <div class="card"><div class="h"><span>Region / Band selector</span><span class="tag">shared data</span></div><div class="b">
+      <div class="selrow"><select><option>Region 2 · Americas</option><option>Region 1 · EMEA</option><option>Region 3 · APAC</option></select>
+      <select><option>40 m</option><option>20 m</option><option>80 m</option></select>
+      <select><option>General</option><option>Extra</option></select></div>
+      <div class="cap">Consumes the Band/Region/Privilege model — one control, reused everywhere.</div>
+    </div></div>
+
+    <div class="card"><div class="h"><span>Ban-list (enforced)</span><span class="tag">ADR-0006</span></div><div class="b">
+      <div class="banlist"><span class="x">✗</span> gradients &nbsp; <span class="x">✗</span> indigo/purple &nbsp; <span class="x">✗</span> rounded-3xl cards<br><span class="x">✗</span> emoji in chrome &nbsp; <span class="x">✗</span> glow shadows</div>
+      <div class="cap">A generic/gradient/indigo screen is a bug, not a preference.</div>
+    </div></div>
+  </div>
+
+  <div class="eyebrow"><span class="no">04</span> App shell &amp; routing — spec</div>
+  <div class="spec">
+    <div class="r"><span class="k">Framework</span><span class="v">Static / prerendered <b>SvelteKit</b> PWA; all math client-side; no server backend (ADR-0001, ADR-0004).</span></div>
+    <div class="r"><span class="k">Routes</span><span class="v"><b>/</b> home quick-calc · <b>/antennas/[model]</b> Designers · <b>/tools/[tool]</b> Engineering Tools · <b>/reference/*</b> tables.</span></div>
+    <div class="r"><span class="k">Chrome</span><span class="v">Sticky masthead: wordmark, nav (Antennas ▾ / Tools ▾ menus generated from the 24-calculator registry), the Center-Frequency input, theme toggle. Footer: Region selector + about.</span></div>
+    <div class="r"><span class="k">State</span><span class="v">Per-calculator UI-state ⇄ versioned readable URL params (<b>?v=1&f=…</b>) via the codec; Saved Projects to localStorage. Center Frequency flows from home into any calculator via the URL handoff.</span></div>
+    <div class="r"><span class="k">Theme</span><span class="v">Token-level light/dark; <b>prefers-color-scheme</b> + a toggle stamping <b>data-theme</b>. Self-hosted WOFF2 subsets (CSP blocks CDNs).</span></div>
+    <div class="r"><span class="k">Quality floor</span><span class="v">Responsive to mobile, visible focus, reduced-motion respected, labelled controls — unannounced on every page.</span></div>
+  </div>
+
+  <p class="lead" style="margin-top:22px">Every calculator = shell + this component set + one <b>compute…</b> seam. The Designers (Antenna Models) add the geometry diagram; the Tools add their readout. Nothing here is re-decided per calculator.</p>
+</main>
+
+<footer><div class="row"><span>Antenna Design Portal · datasheet system v1</span><span>Region 2 · Americas ▾ · prototype for ticket 03</span></div></footer>
+
+<script>
+  document.getElementById('theme').addEventListener('click',function(){var r=document.documentElement,c=r.getAttribute('data-theme');if(!c)c=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';r.setAttribute('data-theme',c==='dark'?'light':'dark');});
+  var seg=document.getElementById('seg');
+  seg.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;[].forEach.call(seg.children,function(x){x.setAttribute('aria-pressed',x===b);});});
+</script>

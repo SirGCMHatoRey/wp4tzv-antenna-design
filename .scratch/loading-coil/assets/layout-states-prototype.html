@@ -1,0 +1,231 @@
+<title>Loading Coil — layout & validation states</title>
+<style>
+  :root{
+    --paper:#F1F2EE; --panel:#FAFBF7; --sunk:#EBEDE6;
+    --ink:#161A1D; --ink-2:#5C635D; --ink-3:#868D86;
+    --rule:#D2D7CF; --rule-strong:#B4BAB1; --grid:#E2E6DE;
+    --signal:#B87514; --signal-ink:#7E5107; --signal-soft:#F0E2C6;
+    --critical:#9E2B22; --critical-soft:#F1DCD8; --ok:#38614A;
+    --display:"Saira SemiCondensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+    --body:"IBM Plex Sans",system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"Cascadia Code","SF Mono",Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0E1114;--panel:#151A1C;--sunk:#0A0D0F;--ink:#E9EBE6;--ink-2:#9AA29B;--ink-3:#6E766E;
+    --rule:#272D29;--rule-strong:#3A413C;--grid:#1C221D;--signal:#E0A63C;--signal-ink:#EAB559;--signal-soft:#3A2E13;
+    --critical:#D8695E;--critical-soft:#3A1E1A;--ok:#7FB394;}}
+  :root[data-theme="light"]{--paper:#F1F2EE;--panel:#FAFBF7;--sunk:#EBEDE6;--ink:#161A1D;--ink-2:#5C635D;--ink-3:#868D86;--rule:#D2D7CF;--rule-strong:#B4BAB1;--grid:#E2E6DE;--signal:#B87514;--signal-ink:#7E5107;--signal-soft:#F0E2C6;--critical:#9E2B22;--critical-soft:#F1DCD8;--ok:#38614A;}
+  :root[data-theme="dark"]{--paper:#0E1114;--panel:#151A1C;--sunk:#0A0D0F;--ink:#E9EBE6;--ink-2:#9AA29B;--ink-3:#6E766E;--rule:#272D29;--rule-strong:#3A413C;--grid:#1C221D;--signal:#E0A63C;--signal-ink:#EAB559;--signal-soft:#3A2E13;--critical:#D8695E;--critical-soft:#3A1E1A;--ok:#7FB394;}
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto;padding:18px 20px 60px}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* preview switcher (dev affordance) */
+  .preview{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sunk);border:1px dashed var(--rule-strong);padding:9px 12px;margin-bottom:16px}
+  .preview .lab{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+  .preview button{font-family:var(--mono);font-size:12px;background:var(--paper);color:var(--ink-2);border:1px solid var(--rule-strong);padding:5px 10px;cursor:pointer}
+  .preview button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .preview button:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+
+  .mast{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:10px;flex-wrap:wrap}
+  .mast h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin:0}
+  .mast .sub{font-size:12px;color:var(--ink-2);margin-top:3px}
+  .themebtn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--ink-2);border:1px solid var(--rule-strong);padding:5px 9px;cursor:pointer}
+  .themebtn:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+
+  .readout{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--rule-strong);border-top:none}
+  .cell{padding:11px 13px;border-left:1px solid var(--rule);position:relative}
+  .cell:first-child{border-left:none}
+  .cell.lead{background:var(--sunk)}
+  .cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+  .cell .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;margin-top:3px}
+  .cell.lead .v{color:var(--signal-ink)}
+  .cell .v small{font-size:12px;color:var(--ink-2);font-weight:500;margin-left:2px}
+  .cell.dim .v{color:var(--ink-3)}
+  .warnbadge{position:absolute;top:8px;right:10px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--signal-ink);border:1px solid var(--signal);background:var(--signal-soft);padding:1px 4px;display:none}
+  .cell.warned .warnbadge{display:inline-block}
+
+  .statusbar{display:flex;align-items:center;gap:11px;border:1px solid var(--rule-strong);border-top:none;padding:10px 13px;font-size:13.5px}
+  .chip{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border:1px solid;white-space:nowrap}
+  .chip.ok{color:var(--ok);border-color:var(--ok)}
+  .chip.warn{color:var(--signal-ink);border-color:var(--signal);background:var(--signal-soft)}
+  .chip.block{color:var(--critical);border-color:var(--critical);background:var(--critical-soft)}
+  .statusmsg{color:var(--ink-2)}.statusmsg b{color:var(--ink)}
+
+  .grid{display:grid;grid-template-columns:280px 1fr;border:1px solid var(--rule-strong);border-top:none}
+  .controls{border-right:1px solid var(--rule);padding:15px;background:var(--panel)}
+  .stagelabel{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2);border-bottom:1px solid var(--rule);padding-bottom:5px;margin:15px 0 11px;display:flex;justify-content:space-between}
+  .stagelabel:first-child{margin-top:0}.stagelabel .n{color:var(--signal-ink)}
+  .field{margin-bottom:11px}
+  .field label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--ink-2);margin-bottom:4px;text-transform:uppercase}
+  .ipt{display:flex;align-items:center;gap:7px;border:1px solid var(--rule-strong);background:var(--paper);padding:6px 8px}
+  .ipt input{border:none;background:transparent;color:var(--ink);font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px;width:100%;padding:0}
+  .ipt input:focus{outline:none}
+  .ipt .u{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .ipt.output{background:var(--sunk);border-style:dashed}
+  .ipt.output .u{color:var(--signal-ink)}
+  .outtag{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--signal-ink);margin-left:auto}
+  .seg{display:flex;border:1px solid var(--rule-strong)}
+  .seg button{flex:1;font-family:var(--mono);font-size:12px;background:var(--paper);color:var(--ink-2);border:none;border-left:1px solid var(--rule);padding:6px 4px;cursor:pointer}
+  .seg button:first-child{border-left:none}
+  .seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+  .seg button:focus-visible{outline:2px solid var(--signal);outline-offset:-2px}
+  .solvenote{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:5px}
+
+  .hero{padding:16px 18px}
+  .heroTop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .heroTop .t{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+  .heroTop .g{font-family:var(--mono);font-size:12px;color:var(--ink)}
+  .stage{position:relative;background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/100% 22px,linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/22px 100%,var(--panel);border:1px solid var(--rule);padding:12px}
+  svg{display:block;width:100%;height:auto}
+  .blockoverlay{display:none;position:absolute;inset:0;background:color-mix(in srgb,var(--critical-soft) 82%,transparent);align-items:center;justify-content:center;text-align:center;padding:20px}
+  .stage.blocked .blockoverlay{display:flex}
+  .stage.blocked svg{opacity:.28}
+  .blockoverlay .bx{max-width:340px}
+  .blockoverlay .bt{font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--critical)}
+  .blockoverlay .bm{font-size:13px;color:var(--ink);margin-top:6px}
+
+  .beam{padding:12px 18px 16px}
+  .beam .t{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+  .beam .sum{font-family:var(--mono);font-size:12.5px;float:right;color:var(--ok)}
+  .beam.blocked .sum{color:var(--ink-3)}
+  .axis{position:relative;height:70px;border-left:1px solid var(--rule-strong);margin-top:26px}
+  .zero{position:absolute;left:0;right:0;top:50%;border-top:1px solid var(--ink)}
+  .bar{position:absolute;width:60px;box-sizing:border-box}
+  .bar.cap{background:repeating-linear-gradient(-45deg,var(--rule-strong) 0 1px,transparent 1px 5px);border:1px solid var(--rule-strong)}
+  .bar.ind{background:var(--signal-soft);border:1px solid var(--signal)}
+  .bar .bl{position:absolute;left:-6px;right:-6px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink-2)}
+
+  .foot{margin-top:14px;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);line-height:1.7}
+  .foot b{color:var(--ink-2)}
+  @media (max-width:780px){.grid{grid-template-columns:1fr}.controls{border-right:none;border-bottom:1px solid var(--rule)}.readout{grid-template-columns:repeat(2,1fr)}.cell:nth-child(3){border-left:none}}
+</style>
+
+<div class="wrap">
+  <div class="preview">
+    <span class="lab">Preview · validation states</span>
+    <button type="button" data-s="ok" aria-pressed="true">OK</button>
+    <button type="button" data-s="lowq" aria-pressed="false">WARN · low Q</button>
+    <button type="button" data-s="selfres" aria-pressed="false">WARN · self-res</button>
+    <button type="button" data-s="wire" aria-pressed="false">BLOCK · wire won’t fit</button>
+    <button type="button" data-s="resonant" aria-pressed="false">BLOCK · already resonant</button>
+    <button class="themebtn" id="theme" type="button" style="margin-left:auto">◐ Theme</button>
+  </div>
+
+  <header class="mast">
+    <div><h1>Loading Coil</h1><div class="sub">Center-loaded · 40 m · Region 2</div></div>
+  </header>
+
+  <section class="readout">
+    <div class="cell lead" id="c-L"><div class="k">Required L</div><div class="v tnum" id="v-L">12.47<small>µH</small></div></div>
+    <div class="cell" id="c-N"><span class="warnbadge">CHECK</span><div class="k">Turns N</div><div class="v tnum" id="v-N">41.3</div></div>
+    <div class="cell"><div class="k">Zc</div><div class="v tnum">381<small>Ω</small></div></div>
+    <div class="cell" id="c-Q"><span class="warnbadge">LOW</span><div class="k">Q est</div><div class="v tnum" id="v-Q">210</div></div>
+    <div class="cell" id="c-fs"><span class="warnbadge">NEAR f</span><div class="k">f-self</div><div class="v tnum" id="v-fs">28.4<small>MHz</small></div></div>
+  </section>
+
+  <div class="statusbar"><span class="chip ok" id="chip">OK</span><span class="statusmsg" id="msg"></span></div>
+
+  <div class="grid">
+    <aside class="controls">
+      <div class="stagelabel"><span>Stage 1 · electrical</span><span class="n">→ L</span></div>
+      <div class="field"><label>Design frequency</label><div class="ipt"><input value="7.15"><span class="u">MHz</span></div></div>
+      <div class="field"><label>Loading position</label><div class="ipt"><input value="center"><span class="u">·</span></div></div>
+      <div class="field"><label>Radiator height H</label><div class="ipt"><input value="2.5"><span class="u">m</span></div></div>
+      <div class="field"><label>Velocity factor</label><div class="ipt"><input value="0.96"><span class="u">VF</span></div></div>
+
+      <div class="stagelabel"><span>Stage 2 · geometry</span><span class="n">solve</span></div>
+      <div class="field"><label>Solve for</label>
+        <div class="seg" id="mode" role="group" aria-label="Solve target">
+          <button type="button" data-m="N" aria-pressed="true">N</button>
+          <button type="button" data-m="d" aria-pressed="false">d</button>
+          <button type="button" data-m="len" aria-pressed="false">ℓ</button>
+        </div>
+        <div class="solvenote" id="solvenote">fixing d, ℓ → solving turns</div>
+      </div>
+      <div class="field"><label>Turns N</label><div class="ipt" id="fld-N"><input value="41.3"><span class="u">t</span><span class="outtag" hidden>SOLVED</span></div></div>
+      <div class="field"><label>Form diameter d</label><div class="ipt" id="fld-d"><input value="25"><span class="u">mm</span><span class="outtag" hidden>SOLVED</span></div></div>
+      <div class="field"><label>Coil length ℓ</label><div class="ipt" id="fld-len"><input value="50"><span class="u">mm</span><span class="outtag" hidden>SOLVED</span></div></div>
+      <div class="field"><label>Wire</label><div class="ipt"><input value="16"><span class="u">AWG</span></div></div>
+    </aside>
+
+    <section class="hero">
+      <div class="heroTop"><span class="t">Wound coil — single-layer air core</span><span class="g" id="geom">d 25mm · ℓ 50mm · N 41.3</span></div>
+      <div class="stage" id="stage">
+        <svg viewBox="0 0 620 200" role="img" aria-label="Loading coil schematic">
+          <line x1="40" y1="100" x2="580" y2="100" stroke="var(--rule-strong)" stroke-width="1" stroke-dasharray="4 4"/>
+          <g id="turns" fill="none" stroke="var(--ink)" stroke-width="2"></g>
+          <line x1="160" y1="60" x2="160" y2="42" stroke="var(--signal)" stroke-width="1.5" stroke-dasharray="2 3"/>
+          <text x="160" y="34" text-anchor="middle" fill="var(--signal)" font-family="var(--mono)" font-size="12" font-weight="700">N = 41.3 t</text>
+          <line x1="230" y1="150" x2="470" y2="150" stroke="var(--ink-2)" stroke-width="1"/>
+          <text x="350" y="168" text-anchor="middle" fill="var(--ink)" font-family="var(--mono)" font-size="12">ℓ = 50 mm</text>
+          <text x="60" y="20" fill="var(--ink-2)" font-family="var(--mono)" font-size="10">FIG.1  CENTER LOADED</text>
+        </svg>
+        <div class="blockoverlay"><div class="bx"><div class="bt" id="b-t">Blocked</div><div class="bm" id="b-m"></div></div></div>
+      </div>
+      <div class="beam" id="beam">
+        <span class="t">Reactance balance — Σ jX at the coil</span><span class="sum" id="beamsum">Σ jX = 0 Ω  ✓ resonant</span>
+        <div class="axis" id="axis"></div>
+      </div>
+    </section>
+  </div>
+
+  <p class="foot">
+    <b>Prototype scope:</b> composition + solve-mode field-flip + the five validation surfaces with fix-oriented copy (frontend-design). Numbers are representative per preview state, not live-computed — live math lives in the diagram prototype. Type = Saira SemiCond / IBM Plex Sans / Plex Mono (shown in fallbacks).<br>
+    <b>Blocks</b> take over the diagram (no coil to draw); the solved readout dims to “—”. <b>Warns</b> keep the result and badge the offending figure.
+  </p>
+</div>
+
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s)};
+  var $$=function(s){return[].slice.call(document.querySelectorAll(s))};
+  // theme
+  $('#theme').addEventListener('click',function(){var r=document.documentElement,c=r.getAttribute('data-theme');if(!c)c=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';r.setAttribute('data-theme',c==='dark'?'light':'dark');drawBeam();});
+  // draw coil turns
+  (function(){var g=$('#turns'),x0=100,x1=520,n=26,step=(x1-x0)/n;var s='';for(var i=0;i<n;i++){var x=x0+step*(i+0.5);var mid=(i===13);s+='<ellipse cx="'+x+'" cy="100" rx="9" ry="40" fill="none" stroke="'+(mid?'var(--signal)':'var(--ink)')+'" stroke-width="2"/>';}g.innerHTML=s;})();
+
+  var beams={ok:true};
+  function drawBeam(){var ax=$('#axis');ax.innerHTML='<div class="zero"></div>';if(!beams.ok)return;
+    var data=[{n:'−jX low',v:-972,c:'cap'},{n:'−jX up',v:-972,c:'cap'},{n:'+jX coil',v:1944,c:'ind'}];
+    var max=1944,mid=35,startX=70,gap=74;
+    data.forEach(function(o,i){var b=document.createElement('div');b.className='bar '+o.c;var h=Math.abs(o.v)/max*(mid-4);b.style.left=(startX+i*gap)+'px';if(o.v<0){b.style.top=mid+'px';b.style.height=h+'px';}else{b.style.top=(mid-h)+'px';b.style.height=h+'px';}var l=document.createElement('div');l.className='bl';l.textContent=o.n;l.style[o.v<0?'top':'bottom']='calc(100% + 3px)';b.appendChild(l);ax.appendChild(b);});}
+
+  var S={
+    ok:{chip:'ok',label:'OK',msg:'Coil resonates the radiator. <b>Trim to resonance</b> after building — the model is ±10%.',block:null,warnCell:null,vals:{L:'12.47',N:'41.3',Q:'210',fs:'28.4'},beam:true},
+    lowq:{chip:'warn',label:'Warn',msg:'Buildable, but <b>Q is low (≈45)</b> — losses will be high. A wider form or fewer turns raises it.',block:null,warnCell:'c-Q',vals:{L:'12.47',N:'41.3',Q:'45',fs:'28.4'},beam:true},
+    selfres:{chip:'warn',label:'Warn',msg:'Buildable, but the coil <b>self-resonates near 8.1 MHz</b> — close to your 7.15 MHz design. A shorter, wider coil moves it up.',block:null,warnCell:'c-fs',vals:{L:'12.47',N:'41.3',Q:'160',fs:'8.1'},beam:true},
+    wire:{chip:'block',label:'Block',msg:'Wire won’t fit.',block:{t:'Wire won’t fit',m:'62 close-wound turns of #16 need 71 mm, but the coil is 50 mm. <b>Use a coarser wire or a longer coil.</b>'},warnCell:null,vals:{L:'12.47',N:'—',Q:'—',fs:'—'},beam:false,dimN:true},
+    resonant:{chip:'block',label:'Block',msg:'No coil needed.',block:{t:'No coil needed',m:'The radiator is already at resonance here. <b>Shorten it, or move the coil up</b> to require loading.'},warnCell:null,vals:{L:'—',N:'—',Q:'—',fs:'—'},beam:false,dimL:true}}
+  ;
+  function apply(k){var s=S[k];
+    $('#chip').className='chip '+s.chip;$('#chip').textContent=s.label.toUpperCase();
+    $('#msg').innerHTML=s.msg;
+    $('#v-L').innerHTML=s.vals.L+(s.vals.L==='—'?'':'<small>µH</small>');
+    $('#v-N').textContent=s.vals.N;
+    $('#v-Q').textContent=s.vals.Q;
+    $('#v-fs').innerHTML=s.vals.fs+(s.vals.fs==='—'?'':'<small>MHz</small>');
+    $$('.cell').forEach(function(c){c.classList.remove('warned','dim');});
+    if(s.warnCell)$('#'+s.warnCell).classList.add('warned');
+    if(s.dimN)$('#c-N').classList.add('dim');
+    if(s.dimL){$('#c-L').classList.add('dim');$('#c-N').classList.add('dim');$('#c-Q').classList.add('dim');$('#c-fs').classList.add('dim');}
+    var st=$('#stage');if(s.block){st.classList.add('blocked');$('#b-t').textContent=s.block.t;$('#b-m').innerHTML=s.block.m;}else st.classList.remove('blocked');
+    $('#beam').classList.toggle('blocked',!s.beam);$('#beamsum').textContent=s.beam?'Σ jX = 0 Ω  ✓ resonant':'no coil required';
+    beams.ok=s.beam;drawBeam();
+  }
+  $$('.preview [data-s]').forEach(function(b){b.addEventListener('click',function(){$$('.preview [data-s]').forEach(function(x){x.setAttribute('aria-pressed',x===b);});apply(b.dataset.s);});});
+
+  // solve-mode field flip
+  $('#mode').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var m=b.dataset.m;
+    [].forEach.call(this.children,function(x){x.setAttribute('aria-pressed',x===b);});
+    var map={N:'fld-N',d:'fld-d',len:'fld-len'};
+    ['fld-N','fld-d','fld-len'].forEach(function(id){var el=$('#'+id);var out=el.id===map[m];el.classList.toggle('output',out);el.querySelector('input').readOnly=out;el.querySelector('.outtag').hidden=!out;});
+    $('#solvenote').textContent={N:'fixing d, ℓ → solving turns',d:'fixing N, ℓ → solving diameter',len:'fixing N, d → solving length'}[m];
+  });
+  // init: N is solved by default
+  $('#fld-N').classList.add('output');$('#fld-N input').readOnly=true;$('#fld-N .outtag').hidden=false;
+  apply('ok');
+})();
+</script>
