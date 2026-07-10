@@ -2,10 +2,13 @@
   import type { PageData } from './$types';
   import FigureFrame from '$lib/components/FigureFrame.svelte';
   import Designer from '$lib/antennas/Designer.svelte';
+  import Tier2Designer from '$lib/antennas/Tier2Designer.svelte';
   import { ANTENNA_DESIGNS } from '$lib/antennas/models';
+  import { TIER2_DESIGNS } from '$lib/antennas/tier2';
   let { data }: { data: PageData } = $props();
   const m = $derived(data.model);
   const design = $derived(ANTENNA_DESIGNS[m.slug]);
+  const tier2 = $derived(TIER2_DESIGNS[m.slug as keyof typeof TIER2_DESIGNS]);
 </script>
 
 <svelte:head>
@@ -15,6 +18,10 @@
 {#if design}
   {#key m.slug}
     <Designer {design} />
+  {/key}
+{:else if tier2}
+  {#key m.slug}
+    <Tier2Designer design={tier2} />
   {/key}
 {:else}
 <section class="hero">

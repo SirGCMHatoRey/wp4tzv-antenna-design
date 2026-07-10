@@ -41,9 +41,9 @@ export const antennaModels: AntennaModel[] = [
   { slug: 'delta-loop', name: 'Delta Loop', method: 'closed-form', source: 'ARRL', tier: 1, status: 'live' },
   { slug: 'random-long-wire', name: 'Random / Long Wire', method: 'closed-form', source: 'ARRL', tier: 1, status: 'live' },
   // Tier 2 — published-design
-  { slug: 'yagi-uda', name: 'Yagi-Uda', method: 'published-design', source: 'DL6WU / NBS TN-688', tier: 2, status: 'planned' },
-  { slug: 'moxon-rectangle', name: 'Moxon Rectangle', method: 'published-design', source: 'Moxon / Cebik', tier: 2, status: 'planned' },
-  { slug: 'j-pole-slim-jim', name: 'J-Pole / Slim Jim', method: 'published-design', source: 'matching-section dimensions', tier: 2, status: 'planned' },
+  { slug: 'yagi-uda', name: 'Yagi-Uda', method: 'published-design', source: 'DL6WU / NBS TN-688', tier: 2, status: 'live' },
+  { slug: 'moxon-rectangle', name: 'Moxon Rectangle', method: 'published-design', source: 'Moxon / Cebik', tier: 2, status: 'live' },
+  { slug: 'j-pole-slim-jim', name: 'J-Pole / Slim Jim', method: 'published-design', source: 'matching-section dimensions', tier: 2, status: 'live' },
   // Tier 3 — complex / niche
   { slug: 'magnetic-loop', name: 'Magnetic Loop (Small Transmitting Loop)', method: 'closed-form', source: 'own research', tier: 3, status: 'planned' },
   { slug: 'discone', name: 'Discone', method: 'published-design', source: 'own research', tier: 3, status: 'planned' },
