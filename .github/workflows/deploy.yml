@@ -24,7 +24,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # npm install (not ci): the lockfile is generated on Windows and npm ci
+      # trips over esbuild's platform-specific optional deps on Linux (EBADPLATFORM).
+      - run: npm install --no-audit --no-fund
       - name: Build (static, with GitHub Pages base path)
         env:
           BASE_PATH: /${{ github.event.repository.name }}
