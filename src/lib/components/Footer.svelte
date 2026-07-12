@@ -7,7 +7,7 @@
 
 <footer>
   <div class="row container">
-    <span>{SITE.titleSuffix} · {SITE.tagline}</span>
+    <span>{SITE.titleSuffix} · datasheet system v1</span>
     <label class="region">
       <span class="lab">Region</span>
       <select bind:value={region} aria-label="IARU Region">

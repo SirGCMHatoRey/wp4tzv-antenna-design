@@ -16,6 +16,6 @@ export const SITE = {
 } as const;
 
 /** Compose a page title: pageTitle('Wavelength') → "Wavelength — WP4TZV Antenna Design". */
-export function pageTitle(page?: string): string {
-  return page ? `${page} — ${SITE.titleSuffix}` : SITE.titleSuffix;
+export function pageTitle(label?: string): string {
+  return label ? `${label} — ${SITE.titleSuffix}` : SITE.titleSuffix;
 }

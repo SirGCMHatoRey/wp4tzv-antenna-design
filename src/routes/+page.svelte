@@ -30,10 +30,7 @@
 
 <svelte:head>
   <title>{SITE.titleSuffix} — amateur radio calculators</title>
-  <meta
-    name="description"
-    content="Client-side amateur radio antenna calculators, engineering tools, and references. First-principles math, exposed corrections, honest accuracy notes. Works offline."
-  />
+  <meta name="description" content={SITE.description} />
 </svelte:head>
 
 <section class="hero">
