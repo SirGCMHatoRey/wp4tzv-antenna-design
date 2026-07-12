@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
 </script>
 
-<svelte:head><title>{$page.status} — Antenna Design Portal</title></svelte:head>
+<svelte:head><title>{pageTitle(String($page.status))}</title></svelte:head>
 
 <section class="err">
   <p class="code tnum">{$page.status}</p>

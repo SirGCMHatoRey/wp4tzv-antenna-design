@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { computeLoadingCoil } from '$lib/tools/loading-coil/engine';
@@ -271,7 +272,7 @@
 </script>
 
 <svelte:head>
-  <title>Loading Coil — Antenna Design Portal</title>
+  <title>{pageTitle('Loading Coil')}</title>
   <meta
     name="description"
     content="Resonate an electrically-short antenna: compute the required loading inductance (exposed Zc, transmission-line model) then the buildable coil geometry (Nagaoka). First-principles, cited, ±10% honest."

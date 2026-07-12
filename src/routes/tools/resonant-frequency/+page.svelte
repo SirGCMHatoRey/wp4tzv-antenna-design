@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import { computeResonantFrequency, type ResMode } from '$lib/tools/resonant-frequency/engine';
   import { units } from '$lib/stores/app-state';
   import { fmt } from '$lib/format';
@@ -24,7 +25,7 @@
   );
 </script>
 
-<svelte:head><title>Resonant Frequency — Antenna Design Portal</title></svelte:head>
+<svelte:head><title>{pageTitle('Resonant Frequency')}</title></svelte:head>
 
 <header class="thead">
   <p class="kicker">Engineering Tool · exact</p>

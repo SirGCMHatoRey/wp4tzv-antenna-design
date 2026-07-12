@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import { computeFeedLineLoss } from '$lib/tools/feed-line-loss/engine';
   import { COAX } from '$lib/tools/feed-line-loss/coax';
   import { units, centerFreqMHz } from '$lib/stores/app-state';
@@ -19,7 +20,7 @@
   );
 </script>
 
-<svelte:head><title>Feed Line Loss — Antenna Design Portal</title></svelte:head>
+<svelte:head><title>{pageTitle('Feed Line Loss')}</title></svelte:head>
 
 <header class="thead">
   <p class="kicker">Engineering Tool · published-design + closed-form · advisory</p>

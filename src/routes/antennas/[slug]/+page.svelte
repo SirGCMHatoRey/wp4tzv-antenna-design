@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import type { PageData } from './$types';
   import FigureFrame from '$lib/components/FigureFrame.svelte';
   import Designer from '$lib/antennas/Designer.svelte';
@@ -12,7 +13,7 @@
 </script>
 
 <svelte:head>
-  <title>{m.name} — Antenna Design Portal</title>
+  <title>{pageTitle(m.name)}</title>
 </svelte:head>
 
 {#if design}

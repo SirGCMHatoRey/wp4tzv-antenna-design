@@ -1,9 +1,10 @@
-# Antenna Design Portal
+# WP4TZV Antenna Design
 
 **Live:** https://sirgcmhatorey.github.io/wp4tzv-antenna-design/
 
-A static-first Progressive Web App of amateur-radio antenna calculators, engineering
-tools, and interactive diagrams — for hams, RF engineers, students, and makers.
+The WP4TZV station's static-first Progressive Web App of amateur-radio antenna
+calculators, engineering tools, and interactive diagrams — for hams, RF engineers,
+students, and makers.
 
 Every result is **first-principles**: it shows its correction factor, its design method,
 and an honest accuracy note. No magic numbers. All math runs client-side and works offline.

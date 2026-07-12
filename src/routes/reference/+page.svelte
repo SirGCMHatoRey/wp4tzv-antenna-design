@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   // Reference surface — band charts, wire tables, coax data (coarse per the map).
   // Placeholder index; content tables land as their tickets are picked up.
   const planned = [
@@ -10,7 +11,7 @@
 </script>
 
 <svelte:head>
-  <title>Reference — Antenna Design Portal</title>
+  <title>{pageTitle('Reference')}</title>
 </svelte:head>
 
 <section class="hero">

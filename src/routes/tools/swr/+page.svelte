@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import { computeSwr, type SwrMode } from '$lib/tools/swr/engine';
   import { fmt } from '$lib/format';
 
@@ -22,7 +23,7 @@
   const inf = (n: number, dp: number) => (Number.isFinite(n) ? fmt(n, dp) : '∞');
 </script>
 
-<svelte:head><title>SWR — Antenna Design Portal</title></svelte:head>
+<svelte:head><title>{pageTitle('SWR')}</title></svelte:head>
 
 <header class="thead">
   <p class="kicker">Engineering Tool · exact</p>

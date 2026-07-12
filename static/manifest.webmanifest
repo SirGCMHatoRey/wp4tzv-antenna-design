@@ -1,7 +1,7 @@
 {
-  "name": "Antenna Design Portal",
-  "short_name": "Antenna Design",
-  "description": "Amateur radio antenna calculators, engineering tools, and references — works offline.",
+  "name": "WP4TZV Antenna Design",
+  "short_name": "WP4TZV",
+  "description": "WP4TZV — amateur radio antenna calculators, engineering tools, and references. Works offline.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

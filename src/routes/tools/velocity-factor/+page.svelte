@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import { computeVelocityFactor, MATERIALS, type VfMode } from '$lib/tools/velocity-factor/engine';
   import { fmt } from '$lib/format';
 
@@ -17,7 +18,7 @@
   );
 </script>
 
-<svelte:head><title>Velocity Factor — Antenna Design Portal</title></svelte:head>
+<svelte:head><title>{pageTitle('Velocity Factor')}</title></svelte:head>
 
 <header class="thead">
   <p class="kicker">Engineering Tool · exact</p>
