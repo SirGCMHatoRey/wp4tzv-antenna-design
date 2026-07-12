@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import { engineeringTools } from '$lib/registry';
   import { base } from '$app/paths';
   const exact = engineeringTools.filter((t) => t.exact);
@@ -6,7 +7,7 @@
 </script>
 
 <svelte:head>
-  <title>Engineering Tools — Antenna Design Portal</title>
+  <title>{pageTitle('Engineering Tools')}</title>
 </svelte:head>
 
 <section class="hero">

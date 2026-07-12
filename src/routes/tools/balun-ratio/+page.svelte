@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import { computeBalunRatio } from '$lib/tools/balun-ratio/engine';
   import { fmt } from '$lib/format';
 
@@ -7,7 +8,7 @@
   const r = $derived(computeBalunRatio({ zIn: Number(zIn), zOut: Number(zOut) }));
 </script>
 
-<svelte:head><title>Balun Ratio — Antenna Design Portal</title></svelte:head>
+<svelte:head><title>{pageTitle('Balun Ratio')}</title></svelte:head>
 
 <header class="thead">
   <p class="kicker">Engineering Tool · exact</p>

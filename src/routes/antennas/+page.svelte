@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import { antennasByTier } from '$lib/registry';
   import { base } from '$app/paths';
   const groups = antennasByTier();
 </script>
 
 <svelte:head>
-  <title>Antenna Models — Antenna Design Portal</title>
+  <title>{pageTitle('Antenna Models')}</title>
 </svelte:head>
 
 <section class="hero">

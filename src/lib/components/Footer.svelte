@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SITE } from '$lib/site';
   // Region selector lives in the footer (CONTEXT: Region is the top-level geographic
   // scope for band data; Region 2 / Americas is the default per the band data model).
   let region = $state('2');
@@ -6,7 +7,7 @@
 
 <footer>
   <div class="row container">
-    <span>Antenna Design Portal · datasheet system v1</span>
+    <span>{SITE.titleSuffix} · {SITE.tagline}</span>
     <label class="region">
       <span class="lab">Region</span>
       <select bind:value={region} aria-label="IARU Region">

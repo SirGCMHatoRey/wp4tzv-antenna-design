@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { pageTitle } from '$lib/site';
   import { computeBandwidth, Q_PRESETS } from '$lib/tools/bandwidth/engine';
   import { centerFreqMHz } from '$lib/stores/app-state';
   import { fmt } from '$lib/format';
@@ -12,7 +13,7 @@
   );
 </script>
 
-<svelte:head><title>Bandwidth — Antenna Design Portal</title></svelte:head>
+<svelte:head><title>{pageTitle('Bandwidth')}</title></svelte:head>
 
 <header class="thead">
   <p class="kicker">Engineering Tool · closed-form · advisory</p>

@@ -3,6 +3,7 @@
   import { units } from '$lib/stores/app-state';
   import { centerFreqMHz } from '$lib/stores/app-state';
   import { lengthDisp } from '$lib/format';
+  import { pageTitle } from '$lib/site';
 
   let fMHz = $state($centerFreqMHz);
   let vf = $state(1);
@@ -15,7 +16,7 @@
   const quarter = $derived(lengthDisp(r.quarterM, imperial));
 </script>
 
-<svelte:head><title>Wavelength — Antenna Design Portal</title></svelte:head>
+<svelte:head><title>{pageTitle('Wavelength')}</title></svelte:head>
 
 <header class="thead">
   <p class="kicker">Engineering Tool · exact</p>

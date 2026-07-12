@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { base } from '$app/paths';
+  import { SITE } from '$lib/site';
   import { theme } from '$lib/stores/theme';
   import { centerFreqMHz } from '$lib/stores/app-state';
   import { antennasByTier, engineeringTools } from '$lib/registry';
@@ -37,8 +38,8 @@
 
 <header class="chrome">
   <div class="row container">
-    <a class="wordmark" href="{base}/" onclick={closeMenus}>
-      Antenna Design<span class="dot">.</span>
+    <a class="wordmark" href="{base}/" onclick={closeMenus} aria-label="{SITE.name} — home">
+      {SITE.name}<span class="dot">.</span>
     </a>
 
     <nav class="main" aria-label="Primary">

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SITE } from '$lib/site';
   import { centerFreqMHz } from '$lib/stores/app-state';
   import { base } from '$app/paths';
   import { antennasByTier, engineeringTools } from '$lib/registry';
@@ -28,7 +29,7 @@
 </script>
 
 <svelte:head>
-  <title>Antenna Design Portal — amateur radio calculators</title>
+  <title>{SITE.titleSuffix} — amateur radio calculators</title>
   <meta
     name="description"
     content="Client-side amateur radio antenna calculators, engineering tools, and references. First-principles math, exposed corrections, honest accuracy notes. Works offline."
@@ -36,7 +37,7 @@
 </svelte:head>
 
 <section class="hero">
-  <h1 class="hero-title">Antenna Design Portal</h1>
+  <h1 class="hero-title">{SITE.tagline}</h1>
   <p class="lead">
     First-principles antenna calculators for hams, RF engineers, students, and makers. Every
     result shows its correction factor, its method, and an honest accuracy note — no magic numbers.
