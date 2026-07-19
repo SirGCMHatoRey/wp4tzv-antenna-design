@@ -16,11 +16,20 @@ export function computeAntenna(design: AntennaDesign, inputs: DesignInputs): Des
     primaryM *= 1 - 0.04 * droop;
   }
 
+  // Ground System (issue #4): only resolved for models that declare the
+  // capability; an omitted input falls back to the model's own default, so
+  // links published before this feature keep resolving the same way. Text is
+  // a lookup into the model's `ground.text` table, not a branch — extending
+  // to a fourth ground system means adding a row, not touching this function.
+  const groundSystem = design.ground ? (inputs.groundSystem ?? design.ground.default) : undefined;
+  const groundText = groundSystem ? design.ground?.text[groundSystem] : undefined;
+
   return {
     lambdaM,
     primaryM,
-    dims: design.dims(primaryM, lambdaM, inputs.k),
-    feed: design.feed,
-    notes: design.notes
+    dims: design.dims(primaryM, lambdaM, inputs.k, groundSystem),
+    feed: groundText?.feed ?? design.feed,
+    notes: groundText?.notes ?? design.notes,
+    accuracy: groundText?.accuracy ?? design.accuracy
   };
 }

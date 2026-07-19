@@ -1,13 +1,22 @@
-// The 9 Tier-1 closed-form Antenna Models as data (antenna-models-list).
+// The 10 Tier-1 closed-form Antenna Models as data (antenna-models-list).
 // Every dimension is length = factor · λ · k with the correction factor exposed
 // (ADR-0002); each declares its method-cite + honest Accuracy Note (ADR-0005).
 
-import type { AntennaDesign, Dim } from './types';
+import type { AntennaDesign, Dim, GroundSystem } from './types';
+import { radialDim } from './ground';
 
 const dipoleDims = (p: number): Dim[] => [
   { label: 'Total length', m: p, key: 'L' },
   { label: 'Each leg (from center)', m: p / 2, key: 'leg' }
 ];
+
+/** Radiator + optional radial breakdown, shared by every ground-aware vertical. */
+const verticalDims =
+  (defaultGround: GroundSystem) =>
+  (p: number, lambda: number, _k: number, g: GroundSystem = defaultGround): Dim[] => {
+    const radial = radialDim(lambda, g);
+    return radial ? [{ label: 'Radiator', m: p, key: 'rad' }, radial] : [{ label: 'Radiator', m: p, key: 'rad' }];
+  };
 
 export const ANTENNA_DESIGNS: Record<string, AntennaDesign> = {
   'half-wave-dipole': {
@@ -63,10 +72,38 @@ export const ANTENNA_DESIGNS: Record<string, AntennaDesign> = {
     feed: '~36 Ω over good ground (rises toward 50 Ω when elevated).',
     notes: ['Needs radials or a ground plane as the missing half.', 'Shorten & load with the Loading Coil for a mobile whip.'],
     loadable: true,
-    dims: (p, lambda) => [
-      { label: 'Radiator', m: p, key: 'rad' },
-      { label: 'Radials ×4', m: 0.25 * lambda * 0.97, key: 'radial' }
-    ]
+    ground: {
+      options: ['elevated-radials', 'ground-radials', 'none'],
+      default: 'elevated-radials',
+      text: {
+        'elevated-radials': {
+          feed: '~36 Ω over an elevated ground plane (rises toward 50 Ω well clear of earth).',
+          notes: [
+            '4 elevated, resonant λ/4 radials form the missing half of the antenna.',
+            'Shorten & load with the Loading Coil for a mobile whip.'
+          ],
+          accuracy: '±~3%, trim to resonance; an elevated ground plane gets you close to the stated feed Z.'
+        },
+        'ground-radials': {
+          feed: '~30–35 Ω over a many-radial buried ground screen — closer to earth, more loss than elevated.',
+          notes: [
+            'Many shorter buried radials beat a few long ones for a ground-mounted base (Severns).',
+            'Shorten & load with the Loading Coil for a mobile whip.'
+          ],
+          accuracy: '±~5%, trim to resonance; a buried ground screen adds efficiency uncertainty beyond the radiator length.'
+        },
+        none: {
+          feed: 'High and unpredictable — ground loss dominates with no radial/counterpoise return.',
+          notes: [
+            'No radials or counterpoise — expect a real efficiency penalty. Add at least one before trusting these numbers.',
+            'Shorten & load with the Loading Coil for a mobile whip.'
+          ],
+          accuracy:
+            '±~3% on the radiator length alone — but real-world efficiency is unpredictable without a ground return. Trim to resonance, then measure.'
+        }
+      }
+    },
+    dims: verticalDims('elevated-radials')
   },
   'five-eighths-wave-vertical': {
     slug: 'five-eighths-wave-vertical',
@@ -79,10 +116,83 @@ export const ANTENNA_DESIGNS: Record<string, AntennaDesign> = {
     accuracy: '±~3%; needs a base matching network — trim to resonance.',
     feed: 'Capacitive — a base loading coil / L-network matches to 50 Ω.',
     notes: ['Lower radiation angle and gain over a ¼-wave.', 'Requires a matching coil at the base; radials still needed.'],
-    dims: (p, lambda) => [
-      { label: 'Radiator', m: p, key: 'rad' },
-      { label: 'Radials ×4', m: 0.25 * lambda * 0.97, key: 'radial' }
-    ]
+    ground: {
+      options: ['elevated-radials', 'ground-radials', 'none'],
+      default: 'elevated-radials',
+      text: {
+        'elevated-radials': {
+          feed: 'Capacitive — a base loading coil / L-network matches to 50 Ω.',
+          notes: [
+            'Requires a matching coil at the base regardless of ground system.',
+            '4 elevated, resonant λ/4 radials form the missing half of the antenna.'
+          ],
+          accuracy: '±~3%; needs a base matching network — trim to resonance.'
+        },
+        'ground-radials': {
+          feed: 'Capacitive — a base loading coil / L-network matches to 50 Ω.',
+          notes: [
+            'Requires a matching coil at the base regardless of ground system.',
+            'Many shorter buried radials beat a few long ones for a ground-mounted base (Severns).'
+          ],
+          accuracy: '±~3%; needs a base matching network — trim to resonance.'
+        },
+        none: {
+          feed: 'Capacitive and lossy — a base matching network alone will not recover the ground loss with no radial return.',
+          notes: [
+            'Requires a matching coil at the base regardless of ground system.',
+            'No radials or counterpoise — the matching network cannot compensate for missing ground return. Add at least one radial.'
+          ],
+          accuracy: '±~3% on the radiator length alone — real-world efficiency is unpredictable without a ground return.'
+        }
+      }
+    },
+    dims: verticalDims('elevated-radials')
+  },
+  'half-wave-vertical': {
+    slug: 'half-wave-vertical',
+    name: 'Half-Wave Vertical',
+    shape: 'vertical',
+    factor: 0.5,
+    defaultK: 0.95,
+    kBasis: 'k ≈ 0.95 for the end-fed half-wave wire, same basis as the flat half-wave dipole.',
+    cite: 'ARRL Antenna Book',
+    accuracy: '±~3%, trim to resonance; feed impedance is high regardless of ground system.',
+    feed: '~2000–4000 Ω, high and reactive at the base — needs a matching network, not a ground plane.',
+    notes: [
+      'No ground plane or radial field required — the feedpoint carries little current.',
+      'Fed at a high-impedance point; needs a base matching network (L-network or unun).'
+    ],
+    ground: {
+      options: ['elevated-radials', 'ground-radials', 'none'],
+      default: 'none',
+      text: {
+        'elevated-radials': {
+          feed: '~2000–4000 Ω, high and reactive at the base — needs a matching network, not a ground plane.',
+          notes: [
+            'A ground system is optional here and makes little practical difference to this design.',
+            'Fed at a high-impedance point; needs a base matching network (L-network or unun).'
+          ],
+          accuracy: '±~3%, trim to resonance; feed impedance is high regardless of ground system.'
+        },
+        'ground-radials': {
+          feed: '~2000–4000 Ω, high and reactive at the base — needs a matching network, not a ground plane.',
+          notes: [
+            'A ground system is optional here and makes little practical difference to this design.',
+            'Fed at a high-impedance point; needs a base matching network (L-network or unun).'
+          ],
+          accuracy: '±~3%, trim to resonance; feed impedance is high regardless of ground system.'
+        },
+        none: {
+          feed: '~2000–4000 Ω, high and reactive at the base — needs a matching network, not a ground plane.',
+          notes: [
+            'No ground plane or radial field required — the feedpoint carries little current.',
+            'Fed at a high-impedance point; needs a base matching network (L-network or unun).'
+          ],
+          accuracy: '±~3%, trim to resonance; feed impedance is high regardless of ground system.'
+        }
+      }
+    },
+    dims: verticalDims('none')
   },
   'end-fed-half-wave': {
     slug: 'end-fed-half-wave',

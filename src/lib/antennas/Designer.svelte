@@ -3,7 +3,7 @@
   import { browser } from '$app/environment';
   import { base } from '$app/paths';
   import { computeAntenna } from './engine';
-  import type { AntennaDesign } from './types';
+  import type { AntennaDesign, GroundSystem } from './types';
   import { units, centerFreqMHz } from '$lib/stores/app-state';
   import { lengthDisp, fmt } from '$lib/format';
 
@@ -14,9 +14,11 @@
   let fMHz = $state($centerFreqMHz);
   let k = $state(untrack(() => design.defaultK));
   let apexDeg = $state(120);
+  // Ground System (issue #4): only meaningful for models that declare `ground`.
+  let groundSystem = $state<GroundSystem>(untrack(() => design.ground?.default ?? 'none'));
 
   const r = $derived(
-    computeAntenna(design, { fMHz: Number(fMHz), k: Number(k), apexDeg: Number(apexDeg) })
+    computeAntenna(design, { fMHz: Number(fMHz), k: Number(k), apexDeg: Number(apexDeg), groundSystem })
   );
   const imperial = $derived($units === 'ft');
 
@@ -29,6 +31,10 @@
     if (Number.isFinite(kk) && kk > 0) k = kk;
     const ap = Number(q.get('apex'));
     if (Number.isFinite(ap) && ap > 0) apexDeg = ap;
+    const g = q.get('g');
+    if (design.ground && (g === 'elevated-radials' || g === 'ground-radials' || g === 'none')) {
+      groundSystem = g;
+    }
   });
   $effect(() => {
     if (!browser) return;
@@ -36,6 +42,7 @@
     q.set('f', String(Number(fMHz)));
     q.set('k', String(Number(k)));
     if (design.hasApex) q.set('apex', String(Number(apexDeg)));
+    if (design.ground) q.set('g', groundSystem);
     history.replaceState(history.state, '', `?${q.toString()}`);
   });
 
@@ -43,8 +50,12 @@
   const handoffH = $derived.by(() => {
     // "Shorten & load": prefill a deliberately short radiator (60% of resonant)
     // so the Loading Coil opens on a real loaded design, not ALREADY_RESONANT.
-    // vertical → radiator; dipole → one leg (the element to load).
-    const full = design.shape === 'vertical' ? r.dims[0].m : r.primaryM / 2;
+    // vertical → radiator (found by key — the radial dim can be absent now);
+    // dipole → one leg (the element to load).
+    const full =
+      design.shape === 'vertical'
+        ? (r.dims.find((d) => d.key === 'rad')?.m ?? r.dims[0].m)
+        : r.primaryM / 2;
     return full * 0.6;
   });
   const handoffUrl = $derived(
@@ -53,6 +64,11 @@
 
   // ---- diagram helpers ----
   const lam = $derived(lengthDisp(r.lambdaM, imperial, 2));
+  // Read the vertical's radiator/radial dims from the *result* by key, never by
+  // position — the radial dim disappears under groundSystem 'none' (issue #4).
+  const radiatorDim = $derived(r.dims.find((d) => d.key === 'rad') ?? r.dims[0]);
+  const radialDimResult = $derived(r.dims.find((d) => d.key === 'radial'));
+  const needsMatchingNetwork = $derived(r.feed.toLowerCase().includes('matching network'));
 </script>
 
 <header class="thead">
@@ -76,6 +92,23 @@
       <div class="field">
         <label for="apex">Apex included angle</label>
         <div class="ipt"><input id="apex" class="tnum" inputmode="decimal" min="60" max="180" bind:value={apexDeg} /><span class="u">°</span></div>
+      </div>
+    {/if}
+
+    {#if design.ground}
+      <div class="field">
+        <span class="lbl">Ground system</span>
+        <div class="seg" role="group" aria-label="Ground system">
+          {#each design.ground.options as opt}
+            <button
+              type="button"
+              aria-pressed={groundSystem === opt}
+              onclick={() => (groundSystem = opt)}
+            >
+              {opt === 'elevated-radials' ? 'Elevated' : opt === 'ground-radials' ? 'Ground-mounted' : 'No radials'}
+            </button>
+          {/each}
+        </div>
       </div>
     {/if}
 
@@ -105,11 +138,17 @@
         {:else if design.shape === 'vertical'}
           <line x1="310" y1="30" x2="310" y2="160" stroke="var(--ink)" stroke-width="2.5" />
           <circle cx="310" cy="160" r="4" fill="var(--signal)" />
-          <line x1="230" y1="175" x2="390" y2="175" stroke="var(--ink-2)" stroke-width="1" />
-          <line x1="310" y1="160" x2="240" y2="178" stroke="var(--ink-2)" stroke-width="1.5" />
-          <line x1="310" y1="160" x2="380" y2="178" stroke="var(--ink-2)" stroke-width="1.5" />
-          <text x="322" y="96" fill="var(--ink)" font-family="var(--mono)" font-size="12">radiator {lengthDisp(r.dims[0].m, imperial).value} {lengthDisp(r.dims[0].m, imperial).unit}</text>
-          <text x="310" y="196" text-anchor="middle" fill="var(--ink-2)" font-family="var(--mono)" font-size="10">radials / ground plane</text>
+          {#if needsMatchingNetwork}
+            <rect x="298" y="160" width="24" height="14" fill="none" stroke="var(--signal)" stroke-width="1.5" />
+            <text x="310" y="184" text-anchor="middle" fill="var(--signal-ink)" font-family="var(--mono)" font-size="9">match</text>
+          {/if}
+          {#if radialDimResult}
+            <line x1="230" y1="175" x2="390" y2="175" stroke="var(--ink-2)" stroke-width="1" />
+            <line x1="310" y1="160" x2="240" y2="178" stroke="var(--ink-2)" stroke-width="1.5" />
+            <line x1="310" y1="160" x2="380" y2="178" stroke="var(--ink-2)" stroke-width="1.5" />
+            <text x="310" y="196" text-anchor="middle" fill="var(--ink-2)" font-family="var(--mono)" font-size="10">{radialDimResult.label.toLowerCase()}</text>
+          {/if}
+          <text x="322" y="96" fill="var(--ink)" font-family="var(--mono)" font-size="12">radiator {lengthDisp(radiatorDim.m, imperial).value} {lengthDisp(radiatorDim.m, imperial).unit}</text>
         {:else if design.shape === 'loop'}
           {#if design.loopSides === 3}
             <polygon points="310,35 200,165 420,165" fill="none" stroke="var(--ink)" stroke-width="2.5" />
@@ -133,16 +172,16 @@
     <!-- honesty pair + feed + notes -->
     <div class="accuracy" style="margin-top:14px">
       <span class="lab">Accuracy note</span><br />
-      {design.accuracy}
+      {r.accuracy}
       <div class="badges">
         <span class="badge">Method <b>closed-form</b></span>
         <span class="badge">Cite <b>{design.cite}</b></span>
-        <span class="badge">Feed <b>{design.feed}</b></span>
+        <span class="badge">Feed <b>{r.feed}</b></span>
       </div>
     </div>
 
     <ul class="notes">
-      {#each design.notes as n}<li>{n}</li>{/each}
+      {#each r.notes as n}<li>{n}</li>{/each}
     </ul>
   </section>
 </div>
@@ -164,6 +203,15 @@
     color: var(--ink-3);
     line-height: 1.6;
     margin: 5px 0 0;
+  }
+  .field .lbl {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    margin-bottom: 4px;
   }
   .btn {
     margin-top: 8px;
