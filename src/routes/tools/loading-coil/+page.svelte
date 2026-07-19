@@ -2,31 +2,37 @@
   import { pageTitle } from '$lib/site';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+  import { units as globalUnits } from '$lib/stores/app-state';
   import { computeLoadingCoil } from '$lib/tools/loading-coil/engine';
   import { parse, serialize, toEngineInputs } from '$lib/tools/loading-coil/codec';
   import { DEFAULTS, BAND_PRESETS, VF_BARE, VF_PVC } from '$lib/tools/loading-coil/defaults';
   import { awgToMm, mmToAwg, COMMON_AWG } from '$lib/tools/loading-coil/wire';
   import {
     fromRadiator, toRadiator, radiatorUnit,
-    fromCoil, toCoil, coilUnit
+    fromCoil, toCoil, coilUnit,
+    toUnitSystem, toLengthUnit, convertDisplayGeometry, convertWireDisplay
   } from '$lib/tools/loading-coil/units';
   import type { Position, Reason, UIState, UnitSystem } from '$lib/tools/loading-coil/types';
 
   // ---- editable state, in display units ----
-  let units = $state<UnitSystem>(DEFAULTS.units);
+  // Units follow the global masthead switch (issue #2), not a private toggle.
+  const initialUnits = toUnitSystem($globalUnits);
+  let units = $state<UnitSystem>(initialUnits);
   let fMHz = $state(DEFAULTS.fMHz);
   let posSel = $state<'base' | 'center' | 'custom'>(
     typeof DEFAULTS.pos === 'number' ? 'custom' : DEFAULTS.pos
   );
   let posFrac = $state(typeof DEFAULTS.pos === 'number' ? DEFAULTS.pos : 0.5);
-  let Hd = $state(fromRadiator(DEFAULTS.H, DEFAULTS.units));
-  let ad = $state(fromCoil(DEFAULTS.a, DEFAULTS.units)); // conductor radius
+  let Hd = $state(fromRadiator(DEFAULTS.H, initialUnits));
+  let ad = $state(fromCoil(DEFAULTS.a, initialUnits)); // conductor radius
   let vf = $state(DEFAULTS.vf);
   let mode = $state<UIState['mode']>(DEFAULTS.mode);
   let Nin = $state(DEFAULTS.N);
-  let dd = $state(fromCoil(DEFAULTS.d, DEFAULTS.units));
-  let lend = $state(fromCoil(DEFAULTS.len, DEFAULTS.units));
-  let wireIn = $state(DEFAULTS.units === 'imperial' ? mmToAwg(DEFAULTS.wireDiam * 1000) : DEFAULTS.wireDiam * 1000);
+  let dd = $state(fromCoil(DEFAULTS.d, initialUnits));
+  let lend = $state(fromCoil(DEFAULTS.len, initialUnits));
+  let wireIn = $state(
+    initialUnits === 'imperial' ? mmToAwg(DEFAULTS.wireDiam * 1000) : DEFAULTS.wireDiam * 1000
+  );
 
   const pos = $derived<Position>(posSel === 'custom' ? posFrac : posSel);
 
@@ -48,6 +54,28 @@
 
   const result = $derived(computeLoadingCoil(toEngineInputs(ui)));
 
+  // ---- units: follows the global masthead switch, converts existing values,
+  // never resets (issue #2). `lastGlobalUnits` guards against re-converting
+  // when *we* push a units change onto the store (link/save parse below).
+  let lastGlobalUnits = $globalUnits;
+  function convertUnits(next: UnitSystem) {
+    if (next === units) return;
+    const g = convertDisplayGeometry({ H: Hd, a: ad, d: dd, len: lend }, units, next);
+    wireIn = convertWireDisplay(wireIn, units, next);
+    units = next;
+    Hd = g.H;
+    ad = g.a;
+    dd = g.d;
+    lend = g.len;
+  }
+  $effect(() => {
+    const next = $globalUnits;
+    if (next !== lastGlobalUnits) {
+      lastGlobalUnits = next;
+      convertUnits(toUnitSystem(next));
+    }
+  });
+
   // ---- URL sync (readable, versioned; outputs never encoded) ----
   $effect(() => {
     if (!browser) return;
@@ -55,39 +83,39 @@
     history.replaceState(history.state, '', `?${qs}`);
   });
 
-  // ---- initial load from URL ----
-  onMount(() => {
-    const s = parse(window.location.search);
-    units = s.units;
+  // ---- apply a parsed UIState (URL or Saved Project) to the editable fields.
+  // `adoptUnits` is false for a bare page load with no `u=` param — parse()
+  // can't tell "absent" from "explicitly metric" (US7/8/22 vs. issue #2's
+  // "missing → current default"), so an un-parametrised visit must leave the
+  // global system alone rather than silently forcing it to metric. ----
+  function applyParsedState(s: UIState, adoptUnits: boolean) {
+    if (adoptUnits) {
+      units = s.units;
+      lastGlobalUnits = toLengthUnit(s.units);
+      globalUnits.set(lastGlobalUnits);
+    }
     fMHz = s.fMHz;
     posSel = typeof s.pos === 'number' ? 'custom' : s.pos;
     posFrac = typeof s.pos === 'number' ? s.pos : 0.5;
-    Hd = fromRadiator(s.H, s.units);
-    ad = fromCoil(s.a, s.units);
+    Hd = fromRadiator(s.H, units);
+    ad = fromCoil(s.a, units);
     vf = s.vf;
     mode = s.mode;
     Nin = s.N;
-    dd = fromCoil(s.d, s.units);
-    lend = fromCoil(s.len, s.units);
-    wireIn = s.units === 'imperial' ? mmToAwg(s.wireDiam * 1000) : s.wireDiam * 1000;
+    dd = fromCoil(s.d, units);
+    lend = fromCoil(s.len, units);
+    wireIn = units === 'imperial' ? mmToAwg(s.wireDiam * 1000) : s.wireDiam * 1000;
+  }
+
+  // ---- initial load from URL ----
+  // A shared link's `u=` carries the sharer's units (US7/8/22); adopt it onto
+  // the global store too, so the recipient's whole portal matches the link.
+  onMount(() => {
+    const query = window.location.search;
+    const hasUnitsParam = new URLSearchParams(query).has('u');
+    applyParsedState(parse(query), hasUnitsParam);
     loadSaves();
   });
-
-  // ---- units toggle: convert existing values, never reset (US35) ----
-  function setUnits(next: UnitSystem) {
-    if (next === units) return;
-    const Hm = toRadiator(Hd, units);
-    const am = toCoil(ad, units);
-    const dm = toCoil(dd, units);
-    const lm = toCoil(lend, units);
-    const wireM = units === 'imperial' ? awgToMm(wireIn) / 1000 : wireIn / 1000;
-    units = next;
-    Hd = fromRadiator(Hm, next);
-    ad = fromCoil(am, next);
-    dd = fromCoil(dm, next);
-    lend = fromCoil(lm, next);
-    wireIn = next === 'imperial' ? mmToAwg(wireM * 1000) : wireM * 1000;
-  }
 
   // ---- solve-mode flip: adopt the last computed value into the newly-fixed field ----
   function setMode(m: UIState['mode']) {
@@ -245,19 +273,10 @@
     showToast('Saved');
   }
   function openSave(qs: string) {
-    const s = parse(qs);
-    units = s.units;
-    fMHz = s.fMHz;
-    posSel = typeof s.pos === 'number' ? 'custom' : s.pos;
-    posFrac = typeof s.pos === 'number' ? s.pos : 0.5;
-    Hd = fromRadiator(s.H, s.units);
-    ad = fromCoil(s.a, s.units);
-    vf = s.vf;
-    mode = s.mode;
-    Nin = s.N;
-    dd = fromCoil(s.d, s.units);
-    lend = fromCoil(s.len, s.units);
-    wireIn = s.units === 'imperial' ? mmToAwg(s.wireDiam * 1000) : s.wireDiam * 1000;
+    // Saved Projects don't carry units onto the global switch — only a
+    // Shareable Link does (issue #2's Solution). A save re-projects into
+    // whichever system the portal is already in.
+    applyParsedState(parse(qs), false);
   }
   function deleteSave(name: string) {
     const next = saves.filter((s) => s.name !== name);
@@ -402,12 +421,6 @@
           {/each}
         </div>
       {/if}
-    </div>
-
-    <div class="stagelabel"><span>Units</span></div>
-    <div class="seg" role="group" aria-label="Units">
-      <button type="button" aria-pressed={units === 'metric'} onclick={() => setUnits('metric')}>Metric</button>
-      <button type="button" aria-pressed={units === 'imperial'} onclick={() => setUnits('imperial')}>Imperial</button>
     </div>
   </aside>
 
