@@ -35,6 +35,7 @@ export const antennaModels: AntennaModel[] = [
   { slug: 'inverted-v-dipole', name: 'Inverted-V Dipole', method: 'closed-form', source: 'ARRL', tier: 1, status: 'live' },
   { slug: 'folded-dipole', name: 'Folded Dipole', method: 'closed-form', source: 'ARRL', tier: 1, status: 'live' },
   { slug: 'quarter-wave-vertical', name: 'Quarter-Wave Vertical / Ground-Plane', method: 'closed-form', source: 'ARRL', tier: 1, loadable: true, status: 'live' },
+  { slug: 'half-wave-vertical', name: 'Half-Wave Vertical', method: 'closed-form', source: 'ARRL', tier: 1, status: 'live' },
   { slug: 'five-eighths-wave-vertical', name: '5/8-Wave Vertical', method: 'closed-form', source: 'ARRL', tier: 1, status: 'live' },
   { slug: 'end-fed-half-wave', name: 'End-Fed Half-Wave (EFHW)', method: 'closed-form', source: 'ARRL', tier: 1, status: 'live' },
   { slug: 'full-wave-loop', name: 'Full-Wave Loop (Quad)', method: 'closed-form', source: 'ARRL', tier: 1, status: 'live' },
