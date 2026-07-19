@@ -3,7 +3,7 @@
   import { base } from '$app/paths';
   import { SITE } from '$lib/site';
   import { theme } from '$lib/stores/theme';
-  import { centerFreqMHz } from '$lib/stores/app-state';
+  import { centerFreqMHz, units } from '$lib/stores/app-state';
   import { antennasByTier, engineeringTools } from '$lib/registry';
 
   const antennaGroups = antennasByTier();
@@ -99,6 +99,10 @@
           onblur={commitFreq}
         />
         <span class="u">MHz</span>
+      </div>
+      <div class="unitswitch seg" role="group" aria-label="Measurement system">
+        <button type="button" aria-pressed={$units === 'm'} onclick={() => units.set('m')}>Metric</button>
+        <button type="button" aria-pressed={$units === 'ft'} onclick={() => units.set('ft')}>Imperial</button>
       </div>
       <button
         class="themebtn"
@@ -252,6 +256,14 @@
   }
   .cf .u {
     font-size: 11px;
+  }
+  .unitswitch {
+    max-width: none;
+    font-size: 11px;
+  }
+  .unitswitch button {
+    padding: 5px 8px;
+    white-space: nowrap;
   }
   .themebtn {
     font-family: var(--mono);

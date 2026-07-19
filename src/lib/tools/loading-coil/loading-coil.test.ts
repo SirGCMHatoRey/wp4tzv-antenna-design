@@ -5,6 +5,12 @@ import { currentSheetL, solveGeom, selfCapacitance, fSelf } from './coil';
 import { computeLoadingCoil } from './engine';
 import { parse, serialize, toEngineInputs, SCHEMA_VERSION } from './codec';
 import { DEFAULTS } from './defaults';
+import {
+  toUnitSystem,
+  toLengthUnit,
+  convertDisplayGeometry,
+  convertWireDisplay
+} from './units';
 import type { EngineInputs } from './types';
 
 const uH = (h: number) => h * 1e6;
@@ -164,5 +170,47 @@ describe('codec', () => {
     expect(s.units).toBe('metric');
     const r = computeLoadingCoil(toEngineInputs(s));
     expect(typeof r.ok).toBe('boolean');
+  });
+});
+
+// ---------- H. Global units bridge (units.ts) — issue #2 ----------
+describe('global units bridge (m/ft ⇄ metric/imperial)', () => {
+  it('H1: toUnitSystem maps the global store representation exactly', () => {
+    expect(toUnitSystem('m')).toBe('metric');
+    expect(toUnitSystem('ft')).toBe('imperial');
+  });
+
+  it('H2: toLengthUnit is the exact inverse', () => {
+    expect(toLengthUnit('metric')).toBe('m');
+    expect(toLengthUnit('imperial')).toBe('ft');
+  });
+
+  it('H3: the m/ft ⇄ metric/imperial mapping round-trips both ways', () => {
+    for (const u of ['m', 'ft'] as const) expect(toLengthUnit(toUnitSystem(u))).toBe(u);
+    for (const u of ['metric', 'imperial'] as const) expect(toUnitSystem(toLengthUnit(u))).toBe(u);
+  });
+
+  it('H4: convertDisplayGeometry is a no-op when the system is unchanged', () => {
+    const g = { H: 2.5, a: 3.2, d: 25, len: 75 };
+    expect(convertDisplayGeometry(g, 'metric', 'metric')).toEqual(g);
+  });
+
+  it('H5: convertDisplayGeometry converts, not resets — round-trips within tolerance', () => {
+    const g = { H: 2.5, a: 3.2, d: 25, len: 75 }; // metric: m, mm, mm, mm
+    const imperial = convertDisplayGeometry(g, 'metric', 'imperial');
+    expect(imperial.H).not.toBe(g.H);
+    const back = convertDisplayGeometry(imperial, 'imperial', 'metric');
+    expect(back.H).toBeCloseTo(g.H, 6);
+    expect(back.a).toBeCloseTo(g.a, 6);
+    expect(back.d).toBeCloseTo(g.d, 6);
+    expect(back.len).toBeCloseTo(g.len, 6);
+  });
+
+  it('H6: convertWireDisplay round-trips mm ⇄ AWG', () => {
+    const mm = 1.29; // #16 AWG
+    const awg = convertWireDisplay(mm, 'metric', 'imperial');
+    expect(awg).toBeCloseTo(16, 0);
+    const back = convertWireDisplay(awg, 'imperial', 'metric');
+    expect(back).toBeCloseTo(mm, 1);
   });
 });
