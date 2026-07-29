@@ -6,6 +6,8 @@
   import type { AntennaDesign, GroundSystem } from './types';
   import { units, centerFreqMHz } from '$lib/stores/app-state';
   import { lengthDisp, fmt } from '$lib/format';
+  import { writeLinkToAddressBar } from '$lib/shareable-link';
+  import { parseDesignerLink, serializeDesignerLink } from './designer-link';
 
   let { design }: { design: AntennaDesign } = $props();
 
@@ -22,28 +24,21 @@
   );
   const imperial = $derived($units === 'ft');
 
-  // ---- URL sync + initial parse ----
+  // ---- URL sync + initial parse (ADR-0008 decision 4, issue #14) ----
   onMount(() => {
-    const q = new URLSearchParams(window.location.search);
-    const f = Number(q.get('f'));
-    if (Number.isFinite(f) && f > 0) fMHz = f;
-    const kk = Number(q.get('k'));
-    if (Number.isFinite(kk) && kk > 0) k = kk;
-    const ap = Number(q.get('apex'));
-    if (Number.isFinite(ap) && ap > 0) apexDeg = ap;
-    const g = q.get('g');
-    if (design.ground && (g === 'elevated-radials' || g === 'ground-radials' || g === 'none')) {
-      groundSystem = g;
-    }
+    const parsed = parseDesignerLink(window.location.search, design, { fMHz: $centerFreqMHz, k: design.defaultK });
+    fMHz = parsed.fMHz;
+    k = parsed.k;
+    apexDeg = parsed.apexDeg;
+    groundSystem = parsed.groundSystem;
   });
   $effect(() => {
     if (!browser) return;
-    const q = new URLSearchParams();
-    q.set('f', String(Number(fMHz)));
-    q.set('k', String(Number(k)));
-    if (design.hasApex) q.set('apex', String(Number(apexDeg)));
-    if (design.ground) q.set('g', groundSystem);
-    history.replaceState(history.state, '', `?${q.toString()}`);
+    const qs = serializeDesignerLink(
+      { fMHz: Number(fMHz), k: Number(k), apexDeg: Number(apexDeg), groundSystem },
+      design
+    );
+    writeLinkToAddressBar(qs);
   });
 
   // ---- Loading Coil handoff (one-way deep link, ADR-0007) ----
