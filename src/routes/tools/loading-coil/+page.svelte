@@ -4,7 +4,8 @@
   import { browser } from '$app/environment';
   import { units as globalUnits } from '$lib/stores/app-state';
   import { computeLoadingCoil } from '$lib/tools/loading-coil/engine';
-  import { parse, serialize, toEngineInputs } from '$lib/tools/loading-coil/codec';
+  import { parse, serialize, toEngineInputs, hasExplicitUnits } from '$lib/tools/loading-coil/codec';
+  import { writeLinkToAddressBar } from '$lib/shareable-link';
   import { DEFAULTS, BAND_PRESETS, VF_BARE, VF_PVC } from '$lib/tools/loading-coil/defaults';
   import { awgToMm, mmToAwg, COMMON_AWG } from '$lib/tools/loading-coil/wire';
   import {
@@ -79,8 +80,7 @@
   // ---- URL sync (readable, versioned; outputs never encoded) ----
   $effect(() => {
     if (!browser) return;
-    const qs = serialize(ui);
-    history.replaceState(history.state, '', `?${qs}`);
+    writeLinkToAddressBar(serialize(ui));
   });
 
   // ---- apply a parsed UIState (URL or Saved Project) to the editable fields.
@@ -110,10 +110,11 @@
   // ---- initial load from URL ----
   // A shared link's `u=` carries the sharer's units (US7/8/22); adopt it onto
   // the global store too, so the recipient's whole portal matches the link.
+  // Presence comes from the codec's own presence-reporting (shared codec,
+  // issue #13) — not a locally re-derived `.has('u')` check.
   onMount(() => {
     const query = window.location.search;
-    const hasUnitsParam = new URLSearchParams(query).has('u');
-    applyParsedState(parse(query), hasUnitsParam);
+    applyParsedState(parse(query), hasExplicitUnits(query));
     loadSaves();
   });
 
