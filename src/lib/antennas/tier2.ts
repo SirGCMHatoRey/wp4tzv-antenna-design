@@ -6,7 +6,7 @@ import { wavelength } from '$lib/physics/wavelength';
 import type { Dim, Shape } from './types';
 
 export type Tier2Slug = 'yagi-uda' | 'moxon-rectangle' | 'j-pole-slim-jim';
-export type JVariant = 'jpole' | 'slimjim';
+export type JVariant = 'jpole' | 'slimjim' | 'superj';
 
 export interface Tier2Inputs {
   fMHz: number;
@@ -110,32 +110,51 @@ export function computeJPole(i: Tier2Inputs): Tier2Result {
   const lambda = wavelength(i.fMHz);
   const vf = i.k; // tubing velocity factor (~0.95)
   const variant: JVariant = i.variant ?? 'jpole';
+  const isSuperJ = variant === 'superj';
 
-  const radiator = 0.5 * lambda * vf; // half-wave radiator
+  const radiator = 0.5 * lambda * vf; // half-wave radiator (lower, for Super J)
   const stub = 0.25 * lambda * vf; // quarter-wave matching stub
-  const overall = radiator + stub;
+  const phasingStub = 0.25 * lambda * vf; // Super J only: ¼λ phasing stub
+  const upperRadiator = 0.5 * lambda * vf; // Super J only: second ½λ radiator
+  const overall = isSuperJ ? stub + radiator + phasingStub + upperRadiator : radiator + stub;
   const feedTap = 0.035 * lambda * vf; // from the bottom, adjust for lowest SWR
   const spacing = 0.02 * lambda; // between the two parallel conductors
+
+  const dims: Dim[] = [
+    { label: isSuperJ ? 'Lower radiator (½λ)' : 'Radiator (½λ)', m: radiator, key: 'rad' },
+    { label: 'Matching stub (¼λ)', m: stub, key: 'stub' }
+  ];
+  if (isSuperJ) {
+    dims.push(
+      { label: 'Phasing stub (¼λ)', m: phasingStub, key: 'phase' },
+      { label: 'Upper radiator (½λ)', m: upperRadiator, key: 'rad2' }
+    );
+  }
+  dims.push(
+    { label: 'Overall height', m: overall, key: 'H' },
+    { label: 'Feed tap from bottom', m: feedTap, key: 'tap' },
+    { label: 'Conductor spacing', m: spacing, key: 'gap' }
+  );
+
+  const variantLabel =
+    variant === 'slimjim' ? 'Slim Jim (J integrated match)' : isSuperJ ? 'Super J (collinear J)' : 'J-Pole';
+  const gain = variant === 'slimjim' ? '≈ 6 dBi' : isSuperJ ? '≈ 5 dBi (≈ 2.5–3 dBd collinear gain)' : '≈ 3 dBi (½λ + gnd)';
 
   return {
     lambdaM: lambda,
     shape: 'jpole',
-    dims: [
-      { label: 'Radiator (½λ)', m: radiator, key: 'rad' },
-      { label: 'Matching stub (¼λ)', m: stub, key: 'stub' },
-      { label: 'Overall height', m: overall, key: 'H' },
-      { label: 'Feed tap from bottom', m: feedTap, key: 'tap' },
-      { label: 'Conductor spacing', m: spacing, key: 'gap' }
-    ],
+    dims,
     extras: [
-      { label: 'Variant', value: variant === 'slimjim' ? 'Slim Jim (J integrated match)' : 'J-Pole' },
-      { label: 'Gain (est)', value: variant === 'slimjim' ? '≈ 6 dBi' : '≈ 3 dBi (½λ + gnd)' }
+      { label: 'Variant', value: variantLabel },
+      { label: 'Gain (est)', value: gain }
     ],
     feed: '~50 Ω at the tap — slide the feed point up/down the stub for lowest SWR.',
     notes: [
-      variant === 'slimjim'
-        ? 'Slim Jim: a folded half-wave radiator with a J matching stub — lower angle than a plain J-Pole.'
-        : 'J-Pole: a half-wave radiator end-matched by a quarter-wave stub; no radials needed.',
+      isSuperJ
+        ? 'Super J: two half-wave radiators stacked and phased in line by a ¼λ stub — collinear gain over a plain J-Pole.'
+        : variant === 'slimjim'
+          ? 'Slim Jim: a folded half-wave radiator with a J matching stub — lower angle than a plain J-Pole.'
+          : 'J-Pole: a half-wave radiator end-matched by a quarter-wave stub; no radials needed.',
       'Set velocity factor for your tubing (~0.95). Tap position and spacing are tuned for minimum SWR.'
     ]
   };
@@ -176,7 +195,7 @@ export const TIER2_DESIGNS: Record<Tier2Slug, Tier2Design> = {
   'j-pole-slim-jim': {
     slug: 'j-pole-slim-jim',
     name: 'J-Pole / Slim Jim',
-    cite: 'Published J-antenna dimensions',
+    cite: 'Published J-antenna / collinear-J dimensions',
     accuracy: 'Starting dimensions — tune tap point and stub for lowest SWR.',
     kLabel: 'velocity factor',
     defaultK: 0.95,
