@@ -138,7 +138,12 @@ export function computeJPole(i: Tier2Inputs): Tier2Result {
 
   const variantLabel =
     variant === 'slimjim' ? 'Slim Jim (J integrated match)' : isSuperJ ? 'Super J (collinear J)' : 'J-Pole';
-  const gain = variant === 'slimjim' ? '≈ 6 dBi' : isSuperJ ? '≈ 5 dBi (≈ 2.5–3 dBd collinear gain)' : '≈ 3 dBi (½λ + gnd)';
+  const gain =
+    variant === 'slimjim'
+      ? '≈ 6 dBi'
+      : isSuperJ
+        ? '≈ 5.5–6 dBi (≈ 2.5–3 dBd over a plain J-Pole)'
+        : '≈ 3 dBi (½λ + gnd)';
 
   return {
     lambdaM: lambda,
@@ -196,7 +201,7 @@ export const TIER2_DESIGNS: Record<Tier2Slug, Tier2Design> = {
     slug: 'j-pole-slim-jim',
     name: 'J-Pole / Slim Jim',
     cite: 'Published J-antenna / collinear-J dimensions',
-    accuracy: 'Starting dimensions — tune tap point and stub for lowest SWR.',
+    accuracy: 'Starting dimensions — tune the tap and matching/phasing stub(s) for lowest SWR.',
     kLabel: 'velocity factor',
     defaultK: 0.95,
     hasVariant: true,
