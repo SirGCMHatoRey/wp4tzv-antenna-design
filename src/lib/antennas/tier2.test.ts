@@ -51,6 +51,57 @@ describe('J-Pole / Slim Jim', () => {
     const v = (r: ReturnType<typeof computeJPole>) => r.extras.find((e) => e.label === 'Variant')!.value;
     expect(v(j)).not.toBe(v(s));
   });
+
+  describe('Super J variant', () => {
+    const lambda = 299.792458 / 146;
+    const vf = 0.95;
+
+    it('has two half-wave radiators and a quarter-wave phasing stub, each × VF', () => {
+      const r = computeJPole({ fMHz: 146, k: vf, variant: 'superj' });
+      expect(r.dims.find((d) => d.key === 'rad')!.m).toBeCloseTo(0.5 * lambda * vf, 3);
+      expect(r.dims.find((d) => d.key === 'rad2')!.m).toBeCloseTo(0.5 * lambda * vf, 3);
+      expect(r.dims.find((d) => d.key === 'phase')!.m).toBeCloseTo(0.25 * lambda * vf, 3);
+    });
+
+    it('overall height is the sum of all four sections (≈1.5λ × VF)', () => {
+      const r = computeJPole({ fMHz: 146, k: vf, variant: 'superj' });
+      const stub = r.dims.find((d) => d.key === 'stub')!.m;
+      const rad = r.dims.find((d) => d.key === 'rad')!.m;
+      const phase = r.dims.find((d) => d.key === 'phase')!.m;
+      const rad2 = r.dims.find((d) => d.key === 'rad2')!.m;
+      const H = r.dims.find((d) => d.key === 'H')!.m;
+      expect(H).toBeCloseTo(stub + rad + phase + rad2, 6);
+      expect(H).toBeCloseTo(1.5 * lambda * vf, 3);
+    });
+
+    it('scales every section proportionally with VF', () => {
+      const r1 = computeJPole({ fMHz: 146, k: 0.8, variant: 'superj' });
+      const r2 = computeJPole({ fMHz: 146, k: 0.95, variant: 'superj' });
+      const ratio = 0.95 / 0.8;
+      for (const key of ['rad', 'rad2', 'phase', 'stub', 'H']) {
+        const m1 = r1.dims.find((d) => d.key === key)!.m;
+        const m2 = r2.dims.find((d) => d.key === key)!.m;
+        expect(m2 / m1).toBeCloseTo(ratio, 5);
+      }
+    });
+
+    it('advisory gain is greater than the plain J-Pole', () => {
+      const j = computeJPole({ fMHz: 146, k: vf, variant: 'jpole' });
+      const s = computeJPole({ fMHz: 146, k: vf, variant: 'superj' });
+      const gain = (r: ReturnType<typeof computeJPole>) =>
+        parseFloat(r.extras.find((e) => e.label.startsWith('Gain'))!.value.match(/[\d.]+/)![0]);
+      expect(gain(s)).toBeGreaterThan(gain(j));
+    });
+
+    it('has a variant label distinct from J-Pole and Slim Jim', () => {
+      const j = computeJPole({ fMHz: 146, k: vf, variant: 'jpole' });
+      const sj = computeJPole({ fMHz: 146, k: vf, variant: 'slimjim' });
+      const su = computeJPole({ fMHz: 146, k: vf, variant: 'superj' });
+      const v = (r: ReturnType<typeof computeJPole>) => r.extras.find((e) => e.label === 'Variant')!.value;
+      expect(v(su)).not.toBe(v(j));
+      expect(v(su)).not.toBe(v(sj));
+    });
+  });
 });
 
 describe('Tier-2 registry', () => {
@@ -60,5 +111,10 @@ describe('Tier-2 registry', () => {
       expect(r.dims.length).toBeGreaterThan(0);
       for (const dim of r.dims) expect(Number.isFinite(dim.m)).toBe(true);
     }
+  });
+  it('the Super J branch also computes finite dimensions', () => {
+    const r = TIER2_DESIGNS['j-pole-slim-jim'].compute({ fMHz: 14.2, k: 0.95, variant: 'superj' });
+    expect(r.dims.length).toBeGreaterThan(0);
+    for (const dim of r.dims) expect(Number.isFinite(dim.m)).toBe(true);
   });
 });

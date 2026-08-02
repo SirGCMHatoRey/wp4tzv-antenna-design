@@ -1,17 +1,97 @@
-// URL/state codec (ADR-0008): URL ↔ UIState ↔ engine(SI). parse is total
-// (never throws); serialize emits readable, versioned params and never encodes
-// outputs (they are re-derived). Schema: ?v=1&f=&pos=&H=&a=&vf=&mode=&<pair>&wire=&u=
-
+// URL/state codec (ADR-0008): URL ↔ UIState ↔ engine(SI), built on the shared
+// Shareable Link codec (src/lib/shareable-link.ts, ADR-0008 decision 4). parse
+// is total (never throws); serialize emits readable, versioned params and
+// never encodes outputs (they are re-derived).
+// Schema: ?v=1&f=&pos=&H=&a=&vf=&mode=&<pair>&wire=&u=
+//
+// Two things don't fit the shared codec's plain num()/enumParam() directly, so
+// they're layered around it rather than forced into it:
+//   - `pos` is base|center|<0..1) fraction — not a fixed enum, not a plain
+//     number. It's parsed/serialized by hand, spliced into the query the
+//     shared codec produces.
+//   - `H`/`a`/`d`/`len` (radiator/coil geometry) and `wire` are display-unit
+//     numbers (m/ft, mm/in, mm/AWG) whose SI meaning depends on `units`, which
+//     the shared codec has no notion of. Read/write them through the shared
+//     schema for defaulting/presence/versioning, but convert SI ⇄ display
+//     ourselves around it (units.ts, wire.ts), same as the old codec did
+//     inline. To avoid a malformed value round-tripping through the *wrong*
+//     unit system (the shared codec's own default substitution doesn't know
+//     which units a link was in), presence + validity for these five is
+//     checked directly against the raw query, and an invalid/absent value
+//     always falls back to the true SI default — never to a display-unit
+//     placeholder reinterpreted under whatever units happen to be active.
+import { num, enumParam, parse as sParse, serialize as sSerialize, type LinkSchema } from '$lib/shareable-link';
 import { DEFAULTS } from './defaults';
 import { awgToMm, mmToAwg } from './wire';
 import { fromRadiator, toRadiator, fromCoil, toCoil } from './units';
 import type { EngineInputs, Position, SolveMode, UIState, UnitSystem } from './types';
 
-export const SCHEMA_VERSION = 1;
+/** Only the mode-dependent N/d/len pair needs context: whichever of the three
+ *  the current solve mode names is the *solved* output, so it's never read or
+ *  written — the other two are the fixed pair. */
+interface ModeCtx {
+  mode: SolveMode;
+}
+
+// The shared codec's `min` is a static floor (n >= min); the old codec's
+// `positive` was a strict n > 0 guard. Number.EPSILON as the floor rejects 0
+// and negative values exactly like the old guard, for every magnitude this
+// tool actually deals in (MHz, turns, velocity factor).
+const POSITIVE = Number.EPSILON;
+
+const schema: LinkSchema<
+  {
+    f: ReturnType<typeof num>;
+    H: ReturnType<typeof num>;
+    a: ReturnType<typeof num>;
+    vf: ReturnType<typeof num>;
+    mode: ReturnType<typeof enumParam<SolveMode>>;
+    N: ReturnType<typeof num<ModeCtx>>;
+    d: ReturnType<typeof num<ModeCtx>>;
+    len: ReturnType<typeof num<ModeCtx>>;
+    wire: ReturnType<typeof num>;
+    u: ReturnType<typeof enumParam<'m' | 'ft'>>;
+  },
+  ModeCtx
+> = {
+  version: 1,
+  params: {
+    f: num({ default: DEFAULTS.fMHz, min: POSITIVE }),
+    // Declared in metric display terms (m/mm ≡ SI at these scales) purely so
+    // serialize() has a sane default to fall back on; parse() never trusts
+    // this default for H/a/d/len — see resolveGeometry below.
+    H: num({ default: fromRadiator(DEFAULTS.H, 'metric'), min: POSITIVE }),
+    a: num({ default: fromCoil(DEFAULTS.a, 'metric'), min: POSITIVE }),
+    vf: num({ default: DEFAULTS.vf, min: POSITIVE }),
+    mode: enumParam(['N', 'd', 'len'] as const, { default: DEFAULTS.mode }),
+    // Active (read/written) only when it's one of the *fixed* pair — the
+    // variable the current mode solves for is never encoded.
+    N: num<ModeCtx>({ default: DEFAULTS.N, min: POSITIVE, when: (ctx) => ctx.mode !== 'N' }),
+    d: num<ModeCtx>({ default: fromCoil(DEFAULTS.d, 'metric'), min: POSITIVE, when: (ctx) => ctx.mode !== 'd' }),
+    len: num<ModeCtx>({
+      default: fromCoil(DEFAULTS.len, 'metric'),
+      min: POSITIVE,
+      when: (ctx) => ctx.mode !== 'len'
+    }),
+    // No static min: valid wire input is mm > 0 in metric but permits
+    // negative/zero AWG numbering in imperial (e.g. 0000 AWG ≈ -3) — a
+    // constraint that varies with `units`, which a static schema can't
+    // express. Positivity for the metric case is enforced in parse() instead.
+    wire: num({ default: DEFAULTS.wireDiam * 1000 }),
+    u: enumParam(['m', 'ft'] as const, { default: 'm' })
+  }
+};
+
+/** The shared schema's version is the single source of truth; kept exported
+ *  under its old name since callers/tests already reference it. */
+export const SCHEMA_VERSION = schema.version;
 
 /** Trim a number to a short, stable decimal string (idempotent round-trip). */
 function fmt(n: number, dp = 4): string {
   return String(Number(n.toFixed(dp)));
+}
+function round(n: number, dp: number): number {
+  return Number(n.toFixed(dp));
 }
 
 function parsePosition(raw: string | null, fallback: Position): Position {
@@ -21,78 +101,114 @@ function parsePosition(raw: string | null, fallback: Position): Position {
   return Number.isFinite(n) && n >= 0 && n < 1 ? n : fallback;
 }
 
-function parseMode(raw: string | null, fallback: SolveMode): SolveMode {
-  return raw === 'N' || raw === 'd' || raw === 'len' ? raw : fallback;
+/** Read+validate one raw query value the way the old codec's local `num()`
+ *  did, independent of the shared codec's own default substitution — so a
+ *  malformed value always falls through to the *true* SI default the caller
+ *  supplies, never to the schema's static display-unit placeholder converted
+ *  under the wrong unit system. */
+function readDisplayNumber(raw: string | null, requirePositive: boolean): number | undefined {
+  if (raw === null || raw === '') return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return undefined;
+  if (requirePositive && n <= 0) return undefined;
+  return n;
 }
 
-function num(raw: string | null, fallback: number, positive = true): number {
-  if (raw === null) return fallback;
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return fallback;
-  if (positive && n <= 0) return fallback;
-  return n;
+/** A single geometry field: read its raw display-unit value (when `active` —
+ *  false for the currently-solved half of the N/d/len pair), convert to SI, or
+ *  fall back to the SI default. Shared by H, a, d, len. */
+function resolveGeometry(
+  raw: string | null,
+  active: boolean,
+  toSI: (displayValue: number) => number,
+  siDefault: number
+): number {
+  const displayValue = active ? readDisplayNumber(raw, true) : undefined;
+  return displayValue !== undefined ? toSI(displayValue) : siDefault;
+}
+
+/** Whether the link explicitly carried `u=` — the shared codec's own
+ *  presence-reporting, not a re-derived check at the call site. A bare visit
+ *  (no `u=`) must not overwrite a stored Imperial/Metric preference (issue #2). */
+export function hasExplicitUnits(query: string | URLSearchParams): boolean {
+  const q = typeof query === 'string' ? new URLSearchParams(query) : query;
+  const { present } = sParse(q, schema);
+  return present.u;
 }
 
 /** Total parse: unknown keys ignored, missing keys → defaults, never throws. */
 export function parse(query: string | URLSearchParams): UIState {
   const q = typeof query === 'string' ? new URLSearchParams(query) : query;
-  const d = DEFAULTS;
 
-  const units: UnitSystem = q.get('u') === 'ft' ? 'imperial' : 'metric';
-  const v = num(q.get('v'), SCHEMA_VERSION);
-  const mode = parseMode(q.get('mode'), d.mode);
+  // Pass 1: resolve `mode` — it has no `when` of its own, so this doesn't need
+  // ctx. Pass 2 uses that mode as ctx so the N/d/len `when` can evaluate.
+  const ctx: ModeCtx = { mode: sParse(q, schema).state.mode };
+  const { state: resolved, present } = sParse(q, schema, ctx);
 
-  // Lengths come in as display units; convert to SI (metres).
-  const H = q.has('H') ? toRadiator(num(q.get('H'), fromRadiator(d.H, units)), units) : d.H;
-  const a = q.has('a') ? toCoil(num(q.get('a'), fromCoil(d.a, units)), units) : d.a;
+  const units: UnitSystem = resolved.u === 'ft' ? 'imperial' : 'metric';
 
-  const dia = q.has('d') ? toCoil(num(q.get('d'), fromCoil(d.d, units)), units) : d.d;
-  const len = q.has('len') ? toCoil(num(q.get('len'), fromCoil(d.len, units)), units) : d.len;
-  const N = num(q.get('N'), d.N);
+  const H = resolveGeometry(q.get('H'), true, (v) => toRadiator(v, units), DEFAULTS.H);
+  const a = resolveGeometry(q.get('a'), true, (v) => toCoil(v, units), DEFAULTS.a);
+  const dia = resolveGeometry(q.get('d'), present.d, (v) => toCoil(v, units), DEFAULTS.d);
+  const len = resolveGeometry(q.get('len'), present.len, (v) => toCoil(v, units), DEFAULTS.len);
 
-  const wireDiam = q.has('wire')
-    ? units === 'imperial'
-      ? awgToMm(num(q.get('wire'), mmToAwg(d.wireDiam * 1000), false)) / 1000
-      : num(q.get('wire'), d.wireDiam * 1000) / 1000
-    : d.wireDiam;
+  // N has no unit conversion (turns are unitless) — the shared codec's own
+  // defaulting/mode-gating is already exact, no extra layer needed.
+  const N = resolved.N;
 
-  const state: UIState = {
-    v,
-    fMHz: num(q.get('f'), d.fMHz),
-    pos: parsePosition(q.get('pos'), d.pos),
+  const rawWire = readDisplayNumber(q.get('wire'), units === 'metric');
+  const wireDiam =
+    rawWire !== undefined
+      ? units === 'imperial'
+        ? awgToMm(rawWire) / 1000
+        : rawWire / 1000
+      : DEFAULTS.wireDiam;
+
+  return {
+    v: schema.version,
+    fMHz: resolved.f,
+    pos: parsePosition(q.get('pos'), DEFAULTS.pos),
     H,
     a,
-    vf: num(q.get('vf'), d.vf),
-    mode,
+    vf: resolved.vf,
+    mode: resolved.mode,
     N,
     d: dia,
     len,
     wireDiam,
     units
   };
-  return migrate(state);
 }
 
 /** Serialize to readable params. Outputs are never emitted; only the two fixed
  *  geometry variables are encoded (the solved third is derived on load). */
 export function serialize(s: UIState): string {
-  const p = new URLSearchParams();
-  p.set('v', String(SCHEMA_VERSION));
-  p.set('f', fmt(s.fMHz));
-  p.set('pos', typeof s.pos === 'number' ? fmt(s.pos, 3) : s.pos);
-  p.set('H', fmt(fromRadiator(s.H, s.units)));
-  p.set('a', fmt(fromCoil(s.a, s.units)));
-  p.set('vf', fmt(s.vf, 3));
-  p.set('mode', s.mode);
+  const ctx: ModeCtx = { mode: s.mode };
+  const schemaState = {
+    f: round(s.fMHz, 4),
+    H: round(fromRadiator(s.H, s.units), 4),
+    a: round(fromCoil(s.a, s.units), 4),
+    vf: round(s.vf, 3),
+    mode: s.mode,
+    N: round(s.N, 2),
+    d: round(fromCoil(s.d, s.units), 4),
+    len: round(fromCoil(s.len, s.units), 4),
+    wire: s.units === 'imperial' ? round(mmToAwg(s.wireDiam * 1000), 1) : round(s.wireDiam * 1000, 4),
+    u: s.units === 'imperial' ? ('ft' as const) : ('m' as const)
+  };
+  const qs = sSerialize(schemaState, schema, ctx);
 
-  // Encode only the fixed pair (mode names the solved/output variable).
-  if (s.mode !== 'N') p.set('N', fmt(s.N, 2));
-  if (s.mode !== 'd') p.set('d', fmt(fromCoil(s.d, s.units)));
-  if (s.mode !== 'len') p.set('len', fmt(fromCoil(s.len, s.units)));
-
-  p.set('wire', s.units === 'imperial' ? fmt(mmToAwg(s.wireDiam * 1000), 1) : fmt(s.wireDiam * 1000));
-  p.set('u', s.units === 'imperial' ? 'ft' : 'm');
-  return p.toString();
+  // Splice `pos` in (right after `f`, matching the tool's long-published
+  // shape) — it isn't part of the shared schema (see file header).
+  const src = new URLSearchParams(qs);
+  const out = new URLSearchParams();
+  out.set('v', src.get('v')!);
+  out.set('f', src.get('f')!);
+  out.set('pos', typeof s.pos === 'number' ? fmt(s.pos, 3) : s.pos);
+  for (const key of ['H', 'a', 'vf', 'mode', 'N', 'd', 'len', 'wire', 'u']) {
+    if (src.has(key)) out.set(key, src.get(key)!);
+  }
+  return out.toString();
 }
 
 export function toEngineInputs(s: UIState): EngineInputs {
@@ -108,10 +224,4 @@ export function toEngineInputs(s: UIState): EngineInputs {
     len: s.len,
     wireDiam: s.wireDiam
   };
-}
-
-// Version migrations. v1 is current; each bump adds an explicit migrate_vN_vM.
-function migrate(state: UIState): UIState {
-  // No migrations yet; the version tag pins old links against default drift.
-  return { ...state, v: SCHEMA_VERSION };
 }

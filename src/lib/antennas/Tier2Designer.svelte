@@ -26,7 +26,7 @@
     const el = Number(q.get('el'));
     if (Number.isFinite(el) && el > 0) elements = el;
     const v = q.get('var');
-    if (v === 'jpole' || v === 'slimjim') variant = v;
+    if (v === 'jpole' || v === 'slimjim' || v === 'superj') variant = v;
   });
   $effect(() => {
     if (!browser) return;
@@ -41,7 +41,10 @@
   // diagram scale helpers (fit into the 620×220 viewbox)
   const px = $derived.by(() => {
     const maxDim = Math.max(...r.dims.map((d) => d.m), r.lambdaM * 0.5);
-    return (m: number) => (m / maxDim) * 240; // px per model metre-ish
+    // Super J stacks four sections almost end-to-end; back off the scale a
+    // touch so the taller structure keeps headroom in the fixed viewBox.
+    const scale = variant === 'superj' ? 190 : 240;
+    return (m: number) => (m / maxDim) * scale; // px per model metre-ish
   });
 </script>
 
@@ -79,6 +82,7 @@
         <div class="seg" role="group" aria-label="Variant">
           <button type="button" aria-pressed={variant === 'jpole'} onclick={() => (variant = 'jpole')}>J-Pole</button>
           <button type="button" aria-pressed={variant === 'slimjim'} onclick={() => (variant = 'slimjim')}>Slim Jim</button>
+          <button type="button" aria-pressed={variant === 'superj'} onclick={() => (variant = 'superj')}>Super J</button>
         </div>
       </div>
     {/if}
@@ -121,16 +125,39 @@
           <text x={x0 + A / 2} y={y0 - 8} text-anchor="middle" fill="var(--signal-ink)" font-family="var(--mono)" font-size="10">driven (A)</text>
           <text x={x0 + A / 2} y={y0 + dep + 16} text-anchor="middle" fill="var(--ink-2)" font-family="var(--mono)" font-size="10">reflector</text>
         {:else if r.shape === 'jpole'}
-          {@const rad = px(r.dims[0].m)}
-          {@const stub = px(r.dims[1].m)}
+          {@const dim = (key: string) => r.dims.find((d) => d.key === key)!.m}
           {@const baseY = 200}
-          <line x1="300" y1={baseY} x2="300" y2={baseY - rad} stroke="var(--ink)" stroke-width="2.5" />
-          <line x1="326" y1={baseY} x2="326" y2={baseY - stub} stroke="var(--ink)" stroke-width="2.5" />
-          <line x1="300" y1={baseY} x2="326" y2={baseY} stroke="var(--ink)" stroke-width="2.5" />
-          <circle cx="313" cy={baseY - px(r.dims[3].m)} r="4" fill="var(--signal)" />
-          <text x="340" y={baseY - stub} fill="var(--ink-2)" font-family="var(--mono)" font-size="10">¼λ stub</text>
-          <text x="285" y={baseY - rad + 4} text-anchor="end" fill="var(--ink)" font-family="var(--mono)" font-size="10">½λ radiator</text>
-          <text x="330" y={baseY - px(r.dims[3].m)} fill="var(--signal-ink)" font-family="var(--mono)" font-size="9">feed tap</text>
+          {@const tap = px(dim('tap'))}
+          {#if variant === 'superj'}
+            {@const stub = px(dim('stub'))}
+            {@const rad = px(dim('rad'))}
+            {@const phase = px(dim('phase'))}
+            {@const rad2 = px(dim('rad2'))}
+            {@const y1 = baseY - rad}
+            {@const y2 = y1 - phase}
+            {@const y3 = y2 - rad2}
+            <line x1="300" y1={baseY} x2="326" y2={baseY} stroke="var(--ink)" stroke-width="2.5" />
+            <line x1="326" y1={baseY} x2="326" y2={baseY - stub} stroke="var(--ink)" stroke-width="2.5" />
+            <line x1="300" y1={baseY} x2="300" y2={y1} stroke="var(--ink)" stroke-width="2.5" />
+            <line x1="300" y1={y1} x2="300" y2={y2} stroke="var(--ink-2)" stroke-width="2.5" stroke-dasharray="4 3" />
+            <line x1="300" y1={y2} x2="300" y2={y3} stroke="var(--ink)" stroke-width="2.5" />
+            <circle cx="313" cy={baseY - tap} r="4" fill="var(--signal)" />
+            <text x="340" y={baseY - stub} fill="var(--ink-2)" font-family="var(--mono)" font-size="10">¼λ match</text>
+            <text x="285" y={y1 + 4} text-anchor="end" fill="var(--ink)" font-family="var(--mono)" font-size="10">½λ lower</text>
+            <text x="285" y={(y1 + y2) / 2 + 4} text-anchor="end" fill="var(--ink-2)" font-family="var(--mono)" font-size="9">¼λ phase</text>
+            <text x="285" y={y3 + 4} text-anchor="end" fill="var(--ink)" font-family="var(--mono)" font-size="10">½λ upper</text>
+            <text x="330" y={baseY - tap} fill="var(--signal-ink)" font-family="var(--mono)" font-size="9">feed tap</text>
+          {:else}
+            {@const stub = px(dim('stub'))}
+            {@const rad = px(dim('rad'))}
+            <line x1="300" y1={baseY} x2="300" y2={baseY - rad} stroke="var(--ink)" stroke-width="2.5" />
+            <line x1="326" y1={baseY} x2="326" y2={baseY - stub} stroke="var(--ink)" stroke-width="2.5" />
+            <line x1="300" y1={baseY} x2="326" y2={baseY} stroke="var(--ink)" stroke-width="2.5" />
+            <circle cx="313" cy={baseY - tap} r="4" fill="var(--signal)" />
+            <text x="340" y={baseY - stub} fill="var(--ink-2)" font-family="var(--mono)" font-size="10">¼λ stub</text>
+            <text x="285" y={baseY - rad + 4} text-anchor="end" fill="var(--ink)" font-family="var(--mono)" font-size="10">½λ radiator</text>
+            <text x="330" y={baseY - tap} fill="var(--signal-ink)" font-family="var(--mono)" font-size="9">feed tap</text>
+          {/if}
         {/if}
       </svg>
     </div>
