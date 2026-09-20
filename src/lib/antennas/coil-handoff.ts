@@ -39,9 +39,9 @@ export function parseAntennaContext(query: string | URLSearchParams): AntennaCon
   };
 }
 
-function contextParams(ctx: AntennaContext | null, into: URLSearchParams) {
+function contextParams(ctx: AntennaContext | null, into: URLSearchParams, withSlug = true) {
   if (!ctx) return;
-  into.set('slug', ctx.slug);
+  if (withSlug) into.set('slug', ctx.slug);
   if (ctx.k !== undefined) into.set('k', String(ctx.k));
   if (ctx.apexDeg !== undefined) into.set('apex', String(ctx.apexDeg));
   if (ctx.groundSystem) into.set('g', ctx.groundSystem);
@@ -86,9 +86,7 @@ export function returnLink(base: string, ctx: AntennaContext | null, ui: UIState
   if (!ctx) return null;
   if (!computeLoadingCoil(toEngineInputs(ui)).ok) return null;
   const q = new URLSearchParams({ f: String(ui.fMHz) });
-  if (ctx.k !== undefined) q.set('k', String(ctx.k));
-  if (ctx.apexDeg !== undefined) q.set('apex', String(ctx.apexDeg));
-  if (ctx.groundSystem) q.set('g', ctx.groundSystem);
+  contextParams(ctx, q, false);
   q.set('coil', encodeCoil(ui));
   return `${base}/antennas/${ctx.slug}?${q.toString()}`;
 }

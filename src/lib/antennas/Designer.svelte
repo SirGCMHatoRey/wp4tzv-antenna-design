@@ -51,7 +51,7 @@
     writeLinkToAddressBar(withCoil.toString());
   });
 
-  // ---- Loading Coil handoff (one-way deep link, ADR-0007) ----
+  // ---- Loading Coil handoff (two-way URL handoff, ADR-0009) ----
   const handoffH = $derived.by(() => {
     // "Shorten & load": prefill a deliberately short radiator (60% of resonant)
     // so the Loading Coil opens on a real loaded design, not ALREADY_RESONANT.
