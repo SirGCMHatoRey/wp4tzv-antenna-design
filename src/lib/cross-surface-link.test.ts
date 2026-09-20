@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parse as parseCoil, serialize as serializeCoil } from '$lib/tools/loading-coil/codec';
+import { computeLoadingCoil } from '$lib/tools/loading-coil/engine';
+import { toEngineInputs } from '$lib/tools/loading-coil/codec';
 import { DEFAULTS } from '$lib/tools/loading-coil/defaults';
 import { designerLinkSchema, parseDesignerLink, serializeDesignerLink } from '$lib/antennas/designer-link';
 import { tier2LinkSchema, parseTier2Link, serializeTier2Link } from '$lib/antennas/tier2-link';
@@ -46,8 +48,11 @@ describe('`f` means the same thing on every surface', () => {
 describe('shorten-and-load handoff spans Tier-1 Designer → Loading Coil', () => {
   it('a Designer-emitted handoff resolves to a pre-filled Loading Coil state', () => {
     const ctx = parseAntennaContext('slug=quarter-wave-vertical&k=0.95')!;
-    const q = new URLSearchParams(outboundUrl('', ctx, { fMHz: 7.15, hM: 1.5 }).split('?')[1]);
+    const hM = 6; // ≈ 60% of a 7.15 MHz quarter-wave, as the Designer computes
+    const q = new URLSearchParams(outboundUrl('', ctx, { fMHz: 7.15, hM }).split('?')[1]);
     expect(parseCoil(q)).toMatchObject({ fMHz: 7.15, pos: 'base', units: 'metric' });
-    expect(parseCoil(q).H).toBeCloseTo(1.5, 6);
+    expect(parseCoil(q).H).toBeCloseTo(hM, 6);
+    // realistic 60%-short quarter-wave at 7.15 MHz: a real, buildable coil, not blocked
+    expect(computeLoadingCoil(toEngineInputs(parseCoil(q))).ok).toBe(true);
   });
 });
