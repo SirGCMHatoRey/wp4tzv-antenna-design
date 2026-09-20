@@ -7,44 +7,44 @@ import { serialize as serializeCoil, parse as parseCoil, toEngineInputs } from '
 import { computeLoadingCoil } from '$lib/tools/loading-coil/engine';
 import type { Coil, UIState } from '$lib/tools/loading-coil/types';
 import { ANTENNA_DESIGNS } from './models';
+import { parseDesignerLink, serializeDesignerLink } from './designer-link';
 import type { GroundSystem } from './types';
 
-const GROUND_SYSTEMS: readonly GroundSystem[] = ['elevated-radials', 'ground-radials', 'none'];
+// The antenna context (k / apex / g) is declared once, in the Designer's own
+// link schema (designer-link.ts, `when`-conditional per model); this module
+// only adds the `slug` naming which Designer the session belongs to.
 
 /** The Designer state a Loading Coil session must hand back unchanged. */
 export interface AntennaContext {
   slug: string;
-  k?: number;
-  apexDeg?: number;
-  groundSystem?: GroundSystem;
+  k: number;
+  apexDeg: number;
+  groundSystem: GroundSystem;
 }
 
-const positive = (raw: string | null): number | undefined => {
-  if (raw === null || raw === '') return undefined;
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : undefined;
-};
-
-/** Present only for a `slug` naming a loadable model; a standalone visit → null. */
+/** Present only for a `slug` naming a loadable model; a standalone visit → null.
+ *  Absent/invalid k, apex, g resolve to the model's own defaults. */
 export function parseAntennaContext(query: string | URLSearchParams): AntennaContext | null {
   const q = typeof query === 'string' ? new URLSearchParams(query) : query;
   const slug = q.get('slug');
-  if (!slug || !ANTENNA_DESIGNS[slug]?.loadable) return null;
-  const g = q.get('g') as GroundSystem | null;
-  return {
-    slug,
-    k: positive(q.get('k')),
-    apexDeg: positive(q.get('apex')),
-    groundSystem: g && GROUND_SYSTEMS.includes(g) ? g : undefined
-  };
+  const design = slug ? ANTENNA_DESIGNS[slug] : undefined;
+  if (!slug || !design?.loadable) return null;
+  const v = parseDesignerLink(q, design, { fMHz: 0, k: design.defaultK });
+  return { slug, k: v.k, apexDeg: v.apexDeg, groundSystem: v.groundSystem };
 }
 
-function contextParams(ctx: AntennaContext | null, into: URLSearchParams, withSlug = true) {
+/** The context as Designer-schema params (k, conditional apex, conditional g),
+ *  minus the Designer's own `f`/`v` — those belong to the surrounding link. */
+function contextParams(ctx: AntennaContext | null, into: URLSearchParams) {
   if (!ctx) return;
-  if (withSlug) into.set('slug', ctx.slug);
-  if (ctx.k !== undefined) into.set('k', String(ctx.k));
-  if (ctx.apexDeg !== undefined) into.set('apex', String(ctx.apexDeg));
-  if (ctx.groundSystem) into.set('g', ctx.groundSystem);
+  const design = ANTENNA_DESIGNS[ctx.slug];
+  const p = new URLSearchParams(
+    serializeDesignerLink({ fMHz: 0, k: ctx.k, apexDeg: ctx.apexDeg, groundSystem: ctx.groundSystem }, design)
+  );
+  p.delete('v');
+  p.delete('f');
+  into.set('slug', ctx.slug);
+  for (const [key, value] of p) into.set(key, value);
 }
 
 /** Keep the antenna context on the Loading Coil's own address-bar link. */
@@ -81,12 +81,16 @@ export function outboundUrl(
 }
 
 /** Loading Coil → Designer. Null unless there is antenna context AND a
- *  buildable coil. */
+ *  buildable coil. Built with the Designer's own link schema. */
 export function returnLink(base: string, ctx: AntennaContext | null, ui: UIState): string | null {
   if (!ctx) return null;
   if (!computeLoadingCoil(toEngineInputs(ui)).ok) return null;
-  const q = new URLSearchParams({ f: String(ui.fMHz) });
-  contextParams(ctx, q, false);
+  const q = new URLSearchParams(
+    serializeDesignerLink(
+      { fMHz: ui.fMHz, k: ctx.k, apexDeg: ctx.apexDeg, groundSystem: ctx.groundSystem },
+      ANTENNA_DESIGNS[ctx.slug]
+    )
+  );
   q.set('coil', encodeCoil(ui));
   return `${base}/antennas/${ctx.slug}?${q.toString()}`;
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { DEFAULTS } from '$lib/tools/loading-coil/defaults';
 import { parse as parseCoil } from '$lib/tools/loading-coil/codec';
+import { ANTENNA_DESIGNS } from './models';
 import type { UIState } from '$lib/tools/loading-coil/types';
 import {
   parseAntennaContext,
@@ -12,19 +13,14 @@ import {
   type AntennaContext
 } from './coil-handoff';
 
-const ctx: AntennaContext = { slug: 'quarter-wave-vertical', k: 0.95, groundSystem: 'ground-radials' };
+const ctx: AntennaContext = { slug: 'quarter-wave-vertical', k: 0.95, apexDeg: 120, groundSystem: 'ground-radials' };
 const validCoil: UIState = { ...DEFAULTS };
 const blockedCoil: UIState = { ...DEFAULTS, fMHz: 30 }; // radiator already resonant
 
 describe('parseAntennaContext', () => {
   it('reads slug/k/g for a loadable model', () => {
     const c = parseAntennaContext('slug=quarter-wave-vertical&k=0.95&g=ground-radials');
-    expect(c).toEqual({
-      slug: 'quarter-wave-vertical',
-      k: 0.95,
-      apexDeg: undefined,
-      groundSystem: 'ground-radials'
-    });
+    expect(c).toMatchObject({ slug: 'quarter-wave-vertical', k: 0.95, groundSystem: 'ground-radials' });
   });
   it('null without a slug (standalone visit)', () => {
     expect(parseAntennaContext('f=7.15&pos=base')).toBeNull();
@@ -33,10 +29,11 @@ describe('parseAntennaContext', () => {
     expect(parseAntennaContext('slug=nope')).toBeNull();
     expect(parseAntennaContext('slug=inverted-v-dipole')).toBeNull();
   });
-  it('drops an invalid ground system / k rather than throwing', () => {
-    const c = parseAntennaContext('slug=quarter-wave-vertical&k=abc&g=bogus')!;
-    expect(c.k).toBeUndefined();
-    expect(c.groundSystem).toBeUndefined();
+  it('resolves an absent k and ground system to the model defaults', () => {
+    const d = ANTENNA_DESIGNS['quarter-wave-vertical'];
+    const c = parseAntennaContext('slug=quarter-wave-vertical')!;
+    expect(c.k).toBe(d.defaultK);
+    expect(c.groundSystem).toBe(d.ground!.default);
   });
 });
 
@@ -67,6 +64,16 @@ describe('outboundUrl (Designer → Loading Coil)', () => {
     expect(q.get('slug')).toBe('quarter-wave-vertical');
     expect(q.get('k')).toBe('0.95');
     expect(q.get('g')).toBe('ground-radials');
+    expect(q.has('apex')).toBe(false); // quarter-wave-vertical has no apex
+    expect(q.has('v')).toBe(false);
+  });
+  it('golden: the extended handoff URL still pre-fills the Loading Coil', () => {
+    const q = new URLSearchParams(outboundUrl('', ctx, { fMHz: 7.15, hM: 1.5 }).split('?')[1]);
+    const ui = parseCoil(q);
+    expect(ui).toMatchObject({ fMHz: 7.15, pos: 'base', units: 'metric' });
+    expect(ui.H).toBeCloseTo(1.5, 6);
+    // and the antenna context survives alongside it
+    expect(parseAntennaContext(q)).toMatchObject({ slug: 'quarter-wave-vertical', k: 0.95 });
   });
   it('edit trip: carries the current coil state, not the prefill', () => {
     const coil: UIState = { ...validCoil, mode: 'd', N: 33, H: 2.2 };
@@ -87,13 +94,13 @@ describe('returnLink (Loading Coil → Designer)', () => {
     expect(returnLink('', ctx, blockedCoil)).toBeNull();
   });
   it('composes path + forwarded params + coil', () => {
-    const l = returnLink('/b', { ...ctx, apexDeg: 100 }, validCoil)!;
+    const l = returnLink('/b', ctx, validCoil)!;
     const [path, qs] = l.split('?');
     expect(path).toBe('/b/antennas/quarter-wave-vertical');
     const q = new URLSearchParams(qs);
     expect(q.get('f')).toBe(String(validCoil.fMHz));
     expect(q.get('k')).toBe('0.95');
-    expect(q.get('apex')).toBe('100');
+    expect(q.has('apex')).toBe(false);
     expect(q.get('g')).toBe('ground-radials');
     expect(decodeCoil(q.get('coil'))).not.toBeNull();
   });
