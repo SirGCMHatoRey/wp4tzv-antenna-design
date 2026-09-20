@@ -67,8 +67,8 @@
   const antennaCtx = $derived<AntennaContext>({
     slug: design.slug,
     k: Number(k),
-    apexDeg: design.hasApex ? Number(apexDeg) : undefined,
-    groundSystem: design.ground ? groundSystem : undefined
+    apexDeg: Number(apexDeg),
+    groundSystem
   });
   // With a loaded coil the trip resumes *that* coil; otherwise the short prefill.
   const handoffUrl = $derived(
@@ -208,6 +208,7 @@
           <div class="lcell"><div class="k">Turns N</div><div class="v tnum">{fmt(loaded.coil.N, 1)}</div></div>
           <div class="lcell"><div class="k">Form diameter d</div><div class="v tnum">{fmt(fromCoil(loaded.coil.dM, coilSys), coilDp)}<small>{cu}</small></div></div>
           <div class="lcell"><div class="k">Coil length ℓ</div><div class="v tnum">{fmt(fromCoil(loaded.coil.lenM, coilSys), coilDp)}<small>{cu}</small></div></div>
+          <div class="lcell"><div class="k">Position</div><div class="v">{coilPosLabel}</div></div>
         </div>
         {#if coilStale}
           <p class="lstale" role="status">
