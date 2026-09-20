@@ -7,7 +7,7 @@
   import { parse, serialize, toEngineInputs, hasExplicitUnits } from '$lib/tools/loading-coil/codec';
   import { writeLinkToAddressBar } from '$lib/shareable-link';
   import { DEFAULTS, BAND_PRESETS, VF_BARE, VF_PVC } from '$lib/tools/loading-coil/defaults';
-  import { awgToMm, mmToAwg, COMMON_AWG } from '$lib/tools/loading-coil/wire';
+  import { awgToMm, mmToAwg, COMMON_AWG, wireAnnotation, radiusAnnotation } from '$lib/tools/loading-coil/wire';
   import {
     fromRadiator, toRadiator, radiatorUnit,
     fromCoil, toCoil, coilUnit,
@@ -289,6 +289,8 @@
     posSel === 'base' ? 'BASE' : posSel === 'center' ? 'CENTER' : `${Math.round(posFrac * 100)}% HEIGHT`
   );
   const wireUnitLabel = $derived(units === 'imperial' ? 'AWG' : 'mm');
+  const wireNote = $derived(wireAnnotation(wireIn, units));
+  const radiusNote = $derived(radiusAnnotation(ad, units));
 </script>
 
 <svelte:head>
@@ -368,6 +370,7 @@
     <div class="field">
       <label for="a">Conductor radius a</label>
       <div class="ipt"><input id="a" class="tnum" inputmode="decimal" bind:value={ad} /><span class="u">{cu}</span></div>
+      <p class="dual tnum" aria-live="polite">{radiusNote}</p>
     </div>
     <div class="field">
       <label for="vf">Velocity factor</label>
@@ -415,6 +418,7 @@
     <div class="field">
       <label for="wire">Wire</label>
       <div class="ipt"><input id="wire" class="tnum" inputmode="decimal" bind:value={wireIn} /><span class="u">{wireUnitLabel}</span></div>
+      <p class="dual tnum" aria-live="polite">{wireNote}</p>
       {#if units === 'imperial'}
         <div class="presets">
           {#each COMMON_AWG as g}
@@ -702,6 +706,13 @@
     background: var(--ink);
     color: var(--paper);
     border-color: var(--ink);
+  }
+  .dual {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+    margin: 5px 0 0;
+    min-height: 1.3em;
   }
   .solvenote {
     font-family: var(--mono);
