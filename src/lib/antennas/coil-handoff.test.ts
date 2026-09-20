@@ -37,6 +37,25 @@ describe('parseAntennaContext', () => {
   });
 });
 
+describe('totality and other loadable models', () => {
+  it('garbled k / g never throw and still yield a usable context', () => {
+    const c = parseAntennaContext('slug=quarter-wave-vertical&k=abc&g=bogus&apex=%%')!;
+    expect(c.slug).toBe('quarter-wave-vertical');
+    expect(Number.isFinite(c.k)).toBe(true);
+    expect(['elevated-radials', 'ground-radials', 'none']).toContain(c.groundSystem);
+  });
+  it('half-wave-dipole (no apex, no ground): golden handoff omits apex and g', () => {
+    const dctx = parseAntennaContext('slug=half-wave-dipole&k=0.95')!;
+    const u = outboundUrl('', dctx, { fMHz: 14.2, hM: 2 });
+    const q = new URLSearchParams(u.split('?')[1]);
+    expect(q.get('slug')).toBe('half-wave-dipole');
+    expect(q.get('k')).toBe('0.95');
+    expect(q.has('apex')).toBe(false);
+    expect(q.has('g')).toBe(false);
+    expect(parseCoil(q)).toMatchObject({ fMHz: 14.2, pos: 'base' });
+  });
+});
+
 describe('coil encoding', () => {
   it('round-trips a valid coil', () => {
     const d = decodeCoil(encodeCoil(validCoil))!;
