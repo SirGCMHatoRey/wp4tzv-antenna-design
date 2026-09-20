@@ -45,6 +45,7 @@ export const antennaModels: AntennaModel[] = [
   { slug: 'yagi-uda', name: 'Yagi-Uda', method: 'published-design', source: 'DL6WU / NBS TN-688', tier: 2, status: 'live' },
   { slug: 'moxon-rectangle', name: 'Moxon Rectangle', method: 'published-design', source: 'Moxon / Cebik', tier: 2, status: 'live' },
   { slug: 'j-pole-slim-jim', name: 'J-Pole / Slim Jim', method: 'published-design', source: 'matching-section dimensions', tier: 2, status: 'live' },
+  { slug: 'dual-band-collinear', name: 'Dual-Band Collinear (2m / 70cm+GMRS)', method: 'published-design', source: 'ARRL / Kraus', tier: 2, status: 'live' },
   // Tier 3 — complex / niche
   { slug: 'magnetic-loop', name: 'Magnetic Loop (Small Transmitting Loop)', method: 'closed-form', source: 'own research', tier: 3, status: 'planned' },
   { slug: 'discone', name: 'Discone', method: 'published-design', source: 'own research', tier: 3, status: 'planned' },
