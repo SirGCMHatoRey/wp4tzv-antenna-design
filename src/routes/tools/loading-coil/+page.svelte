@@ -2,12 +2,15 @@
   import { pageTitle } from '$lib/site';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+  import { base } from '$app/paths';
+  import { ANTENNA_DESIGNS } from '$lib/antennas/models';
+  import { parseAntennaContext, appendAntennaContext, returnLink, type AntennaContext } from '$lib/antennas/coil-handoff';
   import { units as globalUnits } from '$lib/stores/app-state';
   import { computeLoadingCoil } from '$lib/tools/loading-coil/engine';
   import { parse, serialize, toEngineInputs, hasExplicitUnits } from '$lib/tools/loading-coil/codec';
   import { writeLinkToAddressBar } from '$lib/shareable-link';
   import { DEFAULTS, BAND_PRESETS, VF_BARE, VF_PVC } from '$lib/tools/loading-coil/defaults';
-  import { awgToMm, mmToAwg, COMMON_AWG } from '$lib/tools/loading-coil/wire';
+  import { awgToMm, mmToAwg, COMMON_AWG, wireAnnotation, radiusAnnotation } from '$lib/tools/loading-coil/wire';
   import {
     fromRadiator, toRadiator, radiatorUnit,
     fromCoil, toCoil, coilUnit,
@@ -34,6 +37,11 @@
   let wireIn = $state(
     initialUnits === 'imperial' ? mmToAwg(DEFAULTS.wireDiam * 1000) : DEFAULTS.wireDiam * 1000
   );
+
+  // Antenna context (ADR-0009): present only when this session came from a
+  // loadable Designer. Captured before the URL-sync effect can rewrite the query.
+  const initialSearch = browser ? window.location.search : '';
+  let antennaCtx = $state<AntennaContext | null>(null);
 
   const pos = $derived<Position>(posSel === 'custom' ? posFrac : posSel);
 
@@ -80,7 +88,7 @@
   // ---- URL sync (readable, versioned; outputs never encoded) ----
   $effect(() => {
     if (!browser) return;
-    writeLinkToAddressBar(serialize(ui));
+    writeLinkToAddressBar(appendAntennaContext(serialize(ui), antennaCtx));
   });
 
   // ---- apply a parsed UIState (URL or Saved Project) to the editable fields.
@@ -114,6 +122,7 @@
   // issue #13) — not a locally re-derived `.has('u')` check.
   onMount(() => {
     const query = window.location.search;
+    antennaCtx = parseAntennaContext(initialSearch);
     applyParsedState(parse(query), hasExplicitUnits(query));
     loadSaves();
   });
@@ -288,7 +297,12 @@
   const posLabel = $derived(
     posSel === 'base' ? 'BASE' : posSel === 'center' ? 'CENTER' : `${Math.round(posFrac * 100)}% HEIGHT`
   );
+  const antennaName = $derived(antennaCtx ? ANTENNA_DESIGNS[antennaCtx.slug]?.name : undefined);
+  // Hidden (not disabled) unless linked to a Designer *and* the coil is buildable.
+  const backHref = $derived(returnLink(base, antennaCtx, ui));
   const wireUnitLabel = $derived(units === 'imperial' ? 'AWG' : 'mm');
+  const wireNote = $derived(wireAnnotation(wireIn, units));
+  const radiusNote = $derived(radiusAnnotation(ad, units));
 </script>
 
 <svelte:head>
@@ -302,12 +316,14 @@
 <header class="mast">
   <div>
     <p class="kicker">Engineering Tool · closed-form · ±10%</p>
+    {#if antennaName}<p class="linked">← linked to {antennaName}</p>{/if}
     <h1 class="hero-title">Loading Coil</h1>
     <p class="sub">
       {posLabel.charAt(0) + posLabel.slice(1).toLowerCase()}-loaded · {fmt(fMHz, 3)} MHz
     </p>
   </div>
   <div class="acts">
+    {#if backHref}<a class="btn" href={backHref} data-sveltekit-preload-data="off">Back to Designer →</a>{/if}
     <button class="btn ghost" onclick={share}>Share link</button>
     <button class="btn ghost" onclick={saveProject}>Save</button>
   </div>
@@ -368,6 +384,7 @@
     <div class="field">
       <label for="a">Conductor radius a</label>
       <div class="ipt"><input id="a" class="tnum" inputmode="decimal" bind:value={ad} /><span class="u">{cu}</span></div>
+      <p class="dual tnum" aria-live="polite">{radiusNote}</p>
     </div>
     <div class="field">
       <label for="vf">Velocity factor</label>
@@ -415,6 +432,7 @@
     <div class="field">
       <label for="wire">Wire</label>
       <div class="ipt"><input id="wire" class="tnum" inputmode="decimal" bind:value={wireIn} /><span class="u">{wireUnitLabel}</span></div>
+      <p class="dual tnum" aria-live="polite">{wireNote}</p>
       {#if units === 'imperial'}
         <div class="presets">
           {#each COMMON_AWG as g}
@@ -546,6 +564,12 @@
     font-size: 12px;
     color: var(--ink-2);
     margin-top: 4px;
+  }
+  .linked {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+    margin: 0 0 4px;
   }
   .acts {
     display: flex;
@@ -702,6 +726,13 @@
     background: var(--ink);
     color: var(--paper);
     border-color: var(--ink);
+  }
+  .dual {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+    margin: 5px 0 0;
+    min-height: 1.3em;
   }
   .solvenote {
     font-family: var(--mono);

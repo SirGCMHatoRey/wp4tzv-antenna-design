@@ -8,6 +8,8 @@
   import { lengthDisp, fmt } from '$lib/format';
   import { writeLinkToAddressBar } from '$lib/shareable-link';
   import { parseDesignerLink, serializeDesignerLink } from './designer-link';
+  import { decodeCoil, encodeCoil, outboundUrl, type AntennaContext } from './coil-handoff';
+  import { fromCoil, coilUnit, toUnitSystem } from '$lib/tools/loading-coil/units';
 
   let { design }: { design: AntennaDesign } = $props();
 
@@ -18,6 +20,10 @@
   let apexDeg = $state(120);
   // Ground System (issue #4): only meaningful for models that declare `ground`.
   let groundSystem = $state<GroundSystem>(untrack(() => design.ground?.default ?? 'none'));
+  // Loaded coil (ADR-0009): the raw `coil=` link value, decoded on demand. Only
+  // loadable models honour it — anywhere else it is ignored and dropped.
+  let coilParam = $state<string | null>(null);
+  const initialSearch = browser ? window.location.search : ''; // before the URL-sync effect rewrites it
 
   const r = $derived(
     computeAntenna(design, { fMHz: Number(fMHz), k: Number(k), apexDeg: Number(apexDeg), groundSystem })
@@ -31,6 +37,7 @@
     k = parsed.k;
     apexDeg = parsed.apexDeg;
     groundSystem = parsed.groundSystem;
+    if (design.loadable) coilParam = new URLSearchParams(initialSearch).get('coil');
   });
   $effect(() => {
     if (!browser) return;
@@ -38,10 +45,13 @@
       { fMHz: Number(fMHz), k: Number(k), apexDeg: Number(apexDeg), groundSystem },
       design
     );
-    writeLinkToAddressBar(qs);
+    if (!coilParam) return writeLinkToAddressBar(qs);
+    const withCoil = new URLSearchParams(qs);
+    withCoil.set('coil', coilParam);
+    writeLinkToAddressBar(withCoil.toString());
   });
 
-  // ---- Loading Coil handoff (one-way deep link, ADR-0007) ----
+  // ---- Loading Coil handoff (two-way URL handoff, ADR-0009) ----
   const handoffH = $derived.by(() => {
     // "Shorten & load": prefill a deliberately short radiator (60% of resonant)
     // so the Loading Coil opens on a real loaded design, not ALREADY_RESONANT.
@@ -53,9 +63,32 @@
         : r.primaryM / 2;
     return full * 0.6;
   });
+  const loaded = $derived(design.loadable ? decodeCoil(coilParam) : null);
+  const antennaCtx = $derived<AntennaContext>({
+    slug: design.slug,
+    k: Number(k),
+    apexDeg: design.hasApex ? Number(apexDeg) : undefined,
+    groundSystem: design.ground ? groundSystem : undefined
+  });
+  // With a loaded coil the trip resumes *that* coil; otherwise the short prefill.
   const handoffUrl = $derived(
-    `${base}/tools/loading-coil?f=${Number(fMHz)}&pos=base&H=${handoffH.toFixed(3)}&u=m`
+    outboundUrl(base, antennaCtx, { fMHz: Number(fMHz), hM: handoffH }, loaded?.ui)
   );
+
+  // Loaded configuration panel: coil dims follow the global units switch.
+  const coilSys = $derived(toUnitSystem($units));
+  const cu = $derived(coilUnit(coilSys));
+  const coilDp = $derived(cu === 'mm' ? 1 : 3);
+  const coilPosLabel = $derived(
+    !loaded
+      ? ''
+      : loaded.ui.pos === 'base'
+        ? 'base'
+        : loaded.ui.pos === 'center'
+          ? 'center'
+          : `${Math.round(loaded.ui.pos * 100)}% of height`
+  );
+  const coilStale = $derived(!!loaded && Math.abs(loaded.ui.fMHz - Number(fMHz)) > 1e-6);
 
   // ---- diagram helpers ----
   const lam = $derived(lengthDisp(r.lambdaM, imperial, 2));
@@ -108,7 +141,7 @@
     {/if}
 
     {#if design.loadable}
-      <a class="btn" href={handoffUrl} data-sveltekit-preload-data="off">Shorten &amp; load — send to Loading Coil →</a>
+      <a class="btn" href={handoffUrl} data-sveltekit-preload-data="off">{loaded ? 'Edit coil →' : 'Shorten & load — send to Loading Coil →'}</a>
     {/if}
   </aside>
 
@@ -164,6 +197,27 @@
       {/each}
     </div>
 
+    {#if loaded}
+      <div class="loaded" aria-label="Loaded configuration">
+        <div class="lhead">
+          <span class="lt">Loaded configuration</span>
+          <span class="ls tnum">sized for {fmt(loaded.ui.fMHz, 3)} MHz · {coilPosLabel}-loaded</span>
+        </div>
+        <div class="lgrid">
+          <div class="lcell"><div class="k">Inductance L</div><div class="v tnum">{fmt(loaded.coil.LuH, 2)}<small>µH</small></div></div>
+          <div class="lcell"><div class="k">Turns N</div><div class="v tnum">{fmt(loaded.coil.N, 1)}</div></div>
+          <div class="lcell"><div class="k">Form diameter d</div><div class="v tnum">{fmt(fromCoil(loaded.coil.dM, coilSys), coilDp)}<small>{cu}</small></div></div>
+          <div class="lcell"><div class="k">Coil length ℓ</div><div class="v tnum">{fmt(fromCoil(loaded.coil.lenM, coilSys), coilDp)}<small>{cu}</small></div></div>
+        </div>
+        {#if coilStale}
+          <p class="lstale" role="status">
+            Frequency is now {fmt(Number(fMHz), 3)} MHz. This coil was sized for {fmt(loaded.ui.fMHz, 3)} MHz — re-tune it with Edit coil.
+          </p>
+        {/if}
+        <p class="lnote">The full-size dimensions above are the formula reference; the coil makes the shortened radiator resonant.</p>
+      </div>
+    {/if}
+
     <!-- honesty pair + feed + notes -->
     <div class="accuracy" style="margin-top:14px">
       <span class="lab">Accuracy note</span><br />
@@ -213,6 +267,57 @@
     width: 100%;
     text-align: center;
     font-size: 12px;
+  }
+  .loaded {
+    margin-top: 14px;
+    border: 1px solid var(--signal-ink);
+    border-left-width: 4px;
+    padding: 10px 12px 12px;
+  }
+  .lhead {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .lt {
+    font-weight: 600;
+  }
+  .ls {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .lgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .lcell .k {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-2);
+  }
+  .lcell .v {
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .lcell small {
+    font-size: 11px;
+    margin-left: 3px;
+    color: var(--ink-2);
+  }
+  .lstale {
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: var(--signal-ink);
+  }
+  .lnote {
+    margin: 8px 0 0;
+    font-size: 11px;
+    color: var(--ink-3);
   }
   .notes {
     margin: 12px 0 0;

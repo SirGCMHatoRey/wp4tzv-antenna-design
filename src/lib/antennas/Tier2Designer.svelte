@@ -3,39 +3,47 @@
   import { browser } from '$app/environment';
   import { units, centerFreqMHz } from '$lib/stores/app-state';
   import { lengthDisp, fmt } from '$lib/format';
+  import { writeLinkToAddressBar } from '$lib/shareable-link';
+  import { parseTier2Link, serializeTier2Link } from './tier2-link';
   import type { Tier2Design, JVariant } from './tier2';
 
   let { design }: { design: Tier2Design } = $props();
 
-  let fMHz = $state($centerFreqMHz);
+  let fMHz = $state(untrack(() => design.dual?.defaultF1 ?? $centerFreqMHz));
   let k = $state(untrack(() => design.defaultK));
   let elements = $state(3);
   let variant = $state<JVariant>('jpole');
+  let f2MHz = $state(untrack(() => design.dual?.defaultF2 ?? 0));
+  let vf = $state(untrack(() => design.dual?.defaultVf ?? 0));
 
   const r = $derived(
-    design.compute({ fMHz: Number(fMHz), k: Number(k), elements: Number(elements), variant })
+    design.compute({
+      fMHz: Number(fMHz),
+      k: Number(k),
+      elements: Number(elements),
+      variant,
+      ...(design.dual ? { f2MHz: Number(f2MHz), vf: Number(vf) } : {})
+    })
   );
   const imperial = $derived($units === 'ft');
 
   onMount(() => {
-    const q = new URLSearchParams(window.location.search);
-    const f = Number(q.get('f'));
-    if (Number.isFinite(f) && f > 0) fMHz = f;
-    const kk = Number(q.get('k'));
-    if (Number.isFinite(kk) && kk > 0) k = kk;
-    const el = Number(q.get('el'));
-    if (Number.isFinite(el) && el > 0) elements = el;
-    const v = q.get('var');
-    if (v === 'jpole' || v === 'slimjim' || v === 'superj') variant = v;
+    const parsed = parseTier2Link(window.location.search, design, { fMHz, k });
+    fMHz = parsed.fMHz;
+    k = parsed.k;
+    elements = parsed.elements;
+    variant = parsed.variant;
+    f2MHz = parsed.f2MHz;
+    vf = parsed.vf;
   });
   $effect(() => {
     if (!browser) return;
-    const q = new URLSearchParams();
-    q.set('f', String(Number(fMHz)));
-    q.set('k', String(Number(k)));
-    if (design.hasElements) q.set('el', String(Number(elements)));
-    if (design.hasVariant) q.set('var', variant);
-    history.replaceState(history.state, '', `?${q.toString()}`);
+    writeLinkToAddressBar(
+      serializeTier2Link(
+        { fMHz: Number(fMHz), k: Number(k), elements: Number(elements), variant, f2MHz: Number(f2MHz), vf: Number(vf) },
+        design
+      )
+    );
   });
 
   // diagram scale helpers (fit into the 620×220 viewbox)
@@ -51,19 +59,31 @@
 <header class="thead">
   <p class="kicker">Antenna Model · Designer · published-design</p>
   <h1 class="hero-title">{design.name}</h1>
-  <p class="formula tnum">λ = {lengthDisp(r.lambdaM, imperial, 2).value} {lengthDisp(r.lambdaM, imperial, 2).unit} @ {fmt(fMHz, 3)} MHz · {design.cite}</p>
+  <p class="formula tnum">λ = {lengthDisp(r.lambdaM, imperial, 2).value} {lengthDisp(r.lambdaM, imperial, 2).unit} @ {fmt(fMHz, 3)} MHz{#if r.lambdaM2}{' '}· λ₂ = {lengthDisp(r.lambdaM2, imperial, 2).value} {lengthDisp(r.lambdaM2, imperial, 2).unit} @ {fmt(f2MHz, 3)} MHz{/if} · {design.cite}</p>
 </header>
 
 <div class="tgrid">
   <aside class="tcontrols">
     <div class="field">
-      <label for="f">Design frequency</label>
+      <label for="f">{design.dual ? 'VHF design frequency f1' : 'Design frequency'}</label>
       <div class="ipt"><input id="f" class="tnum" inputmode="decimal" bind:value={fMHz} /><span class="u">MHz</span></div>
     </div>
+    {#if design.dual}
+      <div class="field">
+        <label for="f2">UHF design frequency f2</label>
+        <div class="ipt"><input id="f2" class="tnum" inputmode="decimal" bind:value={f2MHz} /><span class="u">MHz</span></div>
+      </div>
+    {/if}
     <div class="field">
       <label for="k">{design.kLabel} <span class="exposed">exposed</span></label>
       <div class="ipt"><input id="k" class="tnum" inputmode="decimal" bind:value={k} /><span class="u">{design.hasVariant ? 'VF' : 'k'}</span></div>
     </div>
+    {#if design.dual}
+      <div class="field">
+        <label for="vf">Phasing-coil coax VF <span class="exposed">exposed</span></label>
+        <div class="ipt"><input id="vf" class="tnum" inputmode="decimal" bind:value={vf} /><span class="u">VF</span></div>
+      </div>
+    {/if}
 
     {#if design.hasElements}
       <div class="field">
@@ -158,6 +178,33 @@
             <text x="285" y={baseY - rad + 4} text-anchor="end" fill="var(--ink)" font-family="var(--mono)" font-size="10">½λ radiator</text>
             <text x="330" y={baseY - tap} fill="var(--signal-ink)" font-family="var(--mono)" font-size="9">feed tap</text>
           {/if}
+        {:else if r.shape === 'collinear'}
+          {@const dim = (key: string) => r.dims.find((d) => d.key === key)!.m}
+          {@const total = dim('H')}
+          {@const s = 190 / total}
+          {@const baseY = 205}
+          {@const vhf = dim('vhf') * s}
+          {@const coil = dim('coil') * s}
+          {@const uhf = dim('uhf') * s}
+          {@const y1 = baseY - vhf}
+          {@const y2 = y1 - coil}
+          {@const y3 = y2 - uhf}
+          {@const turns = 7}
+          <line x1="300" y1={baseY} x2="300" y2={y1} stroke="var(--ink)" stroke-width="2.5" />
+          <path
+            d={`M300 ${y1} ` + Array.from({ length: turns }, (_, n) => {
+              const ya = y1 - (coil * n) / turns;
+              const yb = y1 - (coil * (n + 1)) / turns;
+              return `C 318 ${ya - coil / turns * 0.1}, 318 ${yb + coil / turns * 0.1}, 300 ${yb}`;
+            }).join(' ')}
+            fill="none" stroke="var(--ink-2)" stroke-width="2"
+          />
+          <line x1="300" y1={y2} x2="300" y2={y3} stroke="var(--signal)" stroke-width="2.5" />
+          <circle cx="300" cy={baseY} r="4" fill="var(--signal)" />
+          <text x="285" y={(baseY + y1) / 2 + 4} text-anchor="end" fill="var(--ink)" font-family="var(--mono)" font-size="10">½λ VHF radiator</text>
+          <text x="330" y={(y1 + y2) / 2 + 4} fill="var(--ink-2)" font-family="var(--mono)" font-size="10">phasing coil (coax)</text>
+          <text x="285" y={(y2 + y3) / 2 + 4} text-anchor="end" fill="var(--signal-ink)" font-family="var(--mono)" font-size="10">½λ UHF radiator</text>
+          <text x="312" y={baseY + 4} fill="var(--signal-ink)" font-family="var(--mono)" font-size="9">feed</text>
         {/if}
       </svg>
     </div>

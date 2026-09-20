@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeYagi, computeMoxon, computeJPole, TIER2_DESIGNS } from './tier2';
+import { computeYagi, computeMoxon, computeJPole, computeDualBandCollinear, TIER2_DESIGNS } from './tier2';
 
 describe('Yagi-Uda', () => {
   it('3-element: reflector > driven > director, correct count', () => {
@@ -116,5 +116,70 @@ describe('Tier-2 registry', () => {
     const r = TIER2_DESIGNS['j-pole-slim-jim'].compute({ fMHz: 14.2, k: 0.95, variant: 'superj' });
     expect(r.dims.length).toBeGreaterThan(0);
     for (const dim of r.dims) expect(Number.isFinite(dim.m)).toBe(true);
+  });
+});
+
+describe('Dual-Band Collinear', () => {
+  const C = 299.792458;
+  const base = { fMHz: 145, f2MHz: 448.5, k: 0.96, vf: 0.66 };
+  const dim = (r: ReturnType<typeof computeDualBandCollinear>, key: string) =>
+    r.dims.find((d) => d.key === key)!.m;
+
+  it('VHF/UHF radiators are half-wave × k; phasing coil is half-wave at f2 × VF', () => {
+    const r = computeDualBandCollinear(base);
+    expect(dim(r, 'vhf')).toBeCloseTo(0.5 * (C / 145) * 0.96, 6);
+    expect(dim(r, 'uhf')).toBeCloseTo(0.5 * (C / 448.5) * 0.96, 6);
+    expect(dim(r, 'coil')).toBeCloseTo(0.5 * (C / 448.5) * 0.66, 6);
+    expect(r.shape).toBe('collinear');
+    expect(r.lambdaM).toBeCloseTo(C / 145, 6);
+    expect(r.lambdaM2).toBeCloseTo(C / 448.5, 6);
+  });
+  it('coil length is distinct from both radiators', () => {
+    const r = computeDualBandCollinear(base);
+    expect(dim(r, 'coil')).not.toBeCloseTo(dim(r, 'vhf'), 3);
+    expect(dim(r, 'coil')).not.toBeCloseTo(dim(r, 'uhf'), 3);
+  });
+  it('changing f1 alone leaves UHF radiator and coil unchanged', () => {
+    const a = computeDualBandCollinear(base);
+    const b = computeDualBandCollinear({ ...base, fMHz: 146 });
+    expect(dim(b, 'uhf')).toBe(dim(a, 'uhf'));
+    expect(dim(b, 'coil')).toBe(dim(a, 'coil'));
+    expect(dim(b, 'vhf')).not.toBe(dim(a, 'vhf'));
+  });
+  it('changing f2 alone leaves VHF radiator unchanged', () => {
+    const a = computeDualBandCollinear(base);
+    const b = computeDualBandCollinear({ ...base, f2MHz: 465 });
+    expect(dim(b, 'vhf')).toBe(dim(a, 'vhf'));
+    expect(dim(b, 'uhf')).not.toBe(dim(a, 'uhf'));
+  });
+  it('k scales both radiators but not the coil', () => {
+    const a = computeDualBandCollinear(base);
+    const b = computeDualBandCollinear({ ...base, k: 0.48 });
+    expect(dim(b, 'vhf')).toBeCloseTo(dim(a, 'vhf') / 2, 9);
+    expect(dim(b, 'uhf')).toBeCloseTo(dim(a, 'uhf') / 2, 9);
+    expect(dim(b, 'coil')).toBe(dim(a, 'coil'));
+  });
+  it('VF scales only the coil', () => {
+    const a = computeDualBandCollinear(base);
+    const b = computeDualBandCollinear({ ...base, vf: 0.33 });
+    expect(dim(b, 'coil')).toBeCloseTo(dim(a, 'coil') / 2, 9);
+    expect(dim(b, 'vhf')).toBe(dim(a, 'vhf'));
+    expect(dim(b, 'uhf')).toBe(dim(a, 'uhf'));
+  });
+  it('overall height is the sum of the three components', () => {
+    const r = computeDualBandCollinear(base);
+    expect(dim(r, 'H')).toBeCloseTo(dim(r, 'vhf') + dim(r, 'coil') + dim(r, 'uhf'), 9);
+  });
+  it('reports gain estimate, no-radials note and feed guidance', () => {
+    const r = computeDualBandCollinear(base);
+    expect(r.extras.some((e) => e.label.startsWith('Gain'))).toBe(true);
+    expect(r.notes.join(' ')).toMatch(/no radials/i);
+    expect(r.feed.length).toBeGreaterThan(0);
+  });
+  it('is registered as a Tier-2 design', () => {
+    const d = TIER2_DESIGNS['dual-band-collinear'];
+    expect(d.name).toBe('Dual-Band Collinear (2m / 70cm+GMRS)');
+    expect(d.accuracy).toMatch(/430.467/);
+    expect(d.accuracy).toMatch(/NEC/);
   });
 });

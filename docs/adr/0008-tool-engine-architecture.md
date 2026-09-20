@@ -37,3 +37,5 @@ A blocked result carries **no** values, so the frontend cannot render garbage nu
 - Everything accuracy-critical is closed-form (ADR-0007 / coefficient research); the only embedded data asset is the tool-specific `medhurst-phi.json` (Medhurst Φ for the advisory Q), co-located under the tool, bilinear-interpolated by `qFactor`.
 - Adding a tool = a new `src/lib/tools/<tool>/` folder reusing `src/lib/physics/`, exposing one `compute…` seam returning the same `Result` shape — the frontend rendering of `ok/warn/block` is reusable.
 - Two stable surfaces now exist: each tool's single entry, and the shared physics lib's primitives. The physics lib is the one that must not churn — treat its signatures as an internal contract.
+
+> **Amendment:** decision 4 also governs Designers — see [ADR-0010](0010-shareable-link-codec-covers-designers.md).
