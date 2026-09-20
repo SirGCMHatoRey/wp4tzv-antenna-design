@@ -3,6 +3,8 @@
   import { browser } from '$app/environment';
   import { units, centerFreqMHz } from '$lib/stores/app-state';
   import { lengthDisp, fmt } from '$lib/format';
+  import { writeLinkToAddressBar } from '$lib/shareable-link';
+  import { parseTier2Link, serializeTier2Link } from './tier2-link';
   import type { Tier2Design, JVariant } from './tier2';
 
   let { design }: { design: Tier2Design } = $props();
@@ -26,32 +28,22 @@
   const imperial = $derived($units === 'ft');
 
   onMount(() => {
-    const q = new URLSearchParams(window.location.search);
-    const f = Number(q.get('f'));
-    if (Number.isFinite(f) && f > 0) fMHz = f;
-    const kk = Number(q.get('k'));
-    if (Number.isFinite(kk) && kk > 0) k = kk;
-    const el = Number(q.get('el'));
-    if (Number.isFinite(el) && el > 0) elements = el;
-    const ff2 = Number(q.get('f2'));
-    if (design.dual && Number.isFinite(ff2) && ff2 > 0) f2MHz = ff2;
-    const vv = Number(q.get('vf'));
-    if (design.dual && Number.isFinite(vv) && vv > 0) vf = vv;
-    const v = q.get('var');
-    if (v === 'jpole' || v === 'slimjim' || v === 'superj') variant = v;
+    const parsed = parseTier2Link(window.location.search, design, { fMHz, k });
+    fMHz = parsed.fMHz;
+    k = parsed.k;
+    elements = parsed.elements;
+    variant = parsed.variant;
+    f2MHz = parsed.f2MHz;
+    vf = parsed.vf;
   });
   $effect(() => {
     if (!browser) return;
-    const q = new URLSearchParams();
-    q.set('f', String(Number(fMHz)));
-    q.set('k', String(Number(k)));
-    if (design.hasElements) q.set('el', String(Number(elements)));
-    if (design.hasVariant) q.set('var', variant);
-    if (design.dual) {
-      q.set('f2', String(Number(f2MHz)));
-      q.set('vf', String(Number(vf)));
-    }
-    history.replaceState(history.state, '', `?${q.toString()}`);
+    writeLinkToAddressBar(
+      serializeTier2Link(
+        { fMHz: Number(fMHz), k: Number(k), elements: Number(elements), variant, f2MHz: Number(f2MHz), vf: Number(vf) },
+        design
+      )
+    );
   });
 
   // diagram scale helpers (fit into the 620×220 viewbox)
