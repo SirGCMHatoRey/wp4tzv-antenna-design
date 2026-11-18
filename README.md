@@ -44,6 +44,8 @@ currently render a "not built yet" stub.
   accent, hairline rules, tabular/monospace numerals, self-hosted fonts. A binding
   ban-list (no gradients, indigo, glow, emoji chrome) keeps it from reading as generic.
 
+Contributors: see [`CONTRIBUTING.md`](CONTRIBUTING.md); coding agents: [`AGENTS.md`](AGENTS.md).
+
 Design decisions are recorded as ADRs in [`docs/adr/`](docs/adr) and the ubiquitous-language
 domain model in [`CONTEXT.md`](CONTEXT.md). Planning artifacts (PRD, research, prototypes)
 live under `.scratch/`.
@@ -76,7 +78,7 @@ npm run build      # static build → build/
 npm run preview    # preview the production build
 ```
 
-Physics correctness is covered by 56 vitest cases, including a golden-reference dataset
+Physics correctness is covered by vitest, including a golden-reference dataset
 for the Loading Coil (Nagaoka/Lundin identity chain, worked coils, solve-mode round-trips,
 status codes, codec round-trips).
 
