@@ -1,0 +1,24 @@
+name: Wrong or suspicious result
+description: A calculator or Designer gives a number you believe is wrong.
+labels: [bug, needs-triage]
+body:
+  - type: input
+    id: link
+    attributes:
+      label: Shareable Link
+      description: The page URL including its ?… params. It reproduces the exact design.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What the page shows
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and its source
+      description: Handbook, paper, measurement or NEC model the expected value comes from.
+    validations:
+      required: true

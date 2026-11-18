@@ -1,0 +1,15 @@
+name: Feature or new antenna
+description: Propose a new Engineering Tool, Antenna Model, or improvement.
+labels: [enhancement, needs-triage]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What you want
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Design source
+      description: For an Antenna Model or physics change, the formula or published design (with citation) the numbers come from.
